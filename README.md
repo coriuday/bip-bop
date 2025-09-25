@@ -1,29 +1,98 @@
-# Create T3 App
+# VidShare - Short-Form Video Platform
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+VidShare is a prototype for a short-form video sharing platform, similar to TikTok. It is built using the T3 stack and features user authentication, video uploads, a scrolling video feed, and a like system.
 
-## What's next? How do I make an app with this?
+This project was bootstrapped with [`create-t3-app`](https://create.t3.gg/).
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+## Technology Stack
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+- **Framework**: [Next.js](https://nextjs.org/) (App Router)
+- **API**: [tRPC](https://trpc.io/)
+- **ORM**: [Prisma](https://prisma.io)
+- **Database**: [PostgreSQL](https://www.postgresql.org/)
+- **Authentication**: [NextAuth.js](https://next-auth.js.org)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com)
+- **Schema Validation**: [Zod](https://zod.dev/)
+- **Testing**: [Jest](https://jestjs.io/) & [React Testing Library](https://testing-library.com/)
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+## Project Setup
 
-## Learn More
+To get a local copy up and running, follow these steps.
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+### Prerequisites
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+- Node.js (v18 or later)
+- npm
+- PostgreSQL database
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+### Installation
 
-## How do I deploy this?
+1. **Clone the repository**
+   ```sh
+   git clone <your-repository-url>
+   cd video-platform
+   ```
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+2. **Install dependencies**
+   ```sh
+   npm install
+   ```
+
+3. **Set up environment variables**
+   - Copy the `.env.example` file to a new file named `.env`.
+     ```sh
+     cp .env.example .env
+     ```
+   - Update the `.env` file with your database URL and a secret for NextAuth.js.
+     ```
+     DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
+     AUTH_SECRET="your-super-secret-auth-secret"
+     ```
+
+4. **Run database migrations**
+   - This will create the necessary tables in your database based on the Prisma schema.
+   ```sh
+   npx prisma migrate dev
+   ```
+
+5. **(Optional) Seed the database**
+   - To populate the database with some initial data for testing, you can run the seed script.
+   ```sh
+   npx prisma db seed
+   ```
+
+## Available Scripts
+
+In the project directory, you can run:
+
+- `npm run dev`: Runs the app in development mode.
+- `npm run build`: Builds the app for production.
+- `npm run start`: Starts a production server.
+- `npm run lint`: Lints the codebase.
+- `npm run test`: Runs the test suite with Jest.
+
+## API and Database
+
+### Database Schema
+
+The database schema is defined in `prisma/schema.prisma` and includes the following models:
+
+- **User**: Stores user information, including credentials.
+- **Video**: Stores metadata about uploaded videos, such as title, file path, and a reference to the user who uploaded it.
+- **Like**: A join table that tracks which users have liked which videos.
+- **Account, Session, VerificationToken**: Standard models required by NextAuth.js.
+
+### API Endpoints
+
+The application uses tRPC for most of its API, providing end-to-end type safety.
+
+#### tRPC Procedures (in `src/server/api/routers/`)
+
+- **`auth.register`**: (Mutation) Creates a new user.
+- **`video.create`**: (Mutation) Creates a new video record in the database.
+- **`video.getFeed`**: (Query) Fetches a paginated list of videos for the main feed.
+- **`video.toggleLike`**: (Mutation) Allows a user to like or unlike a video.
+
+#### REST Endpoints
+
+- **`POST /api/upload`**: Handles the raw file upload of videos. It accepts `multipart/form-data` and stores the file on the server.

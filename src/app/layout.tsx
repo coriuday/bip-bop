@@ -2,10 +2,12 @@ import "~/styles/globals.css";
 
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
+import { Toaster } from "react-hot-toast";
 
 import { TRPCReactProvider } from "~/trpc/react";
 import { AuthSessionProvider } from "~/components/providers/session-provider";
-import { Navbar } from "~/components/layout/navbar";
+import Navbar from "~/components/layout/navbar";
+import ErrorBoundary from "./error-boundary";
 
 export const metadata: Metadata = {
   title: "Video Platform",
@@ -26,8 +28,11 @@ export default function RootLayout({
       <body>
         <TRPCReactProvider>
           <AuthSessionProvider>
-            <Navbar />
-            <main>{children}</main>
+            <ErrorBoundary>
+              <Navbar />
+              <main>{children}</main>
+              <Toaster position="bottom-right" />
+            </ErrorBoundary>
           </AuthSessionProvider>
         </TRPCReactProvider>
       </body>

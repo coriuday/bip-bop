@@ -11,6 +11,12 @@ const registerSchema = z.object({
   name: z.string().min(1).max(100),
 });
 
+/**
+ * Registers a new user in the database.
+ * Publicly accessible.
+ * @param input - The user's registration details (username, email, password, name).
+ * @throws {TRPCError} - Throws a CONFLICT error if the username or email is already taken.
+ */
 export const authRouter = createTRPCRouter({
   register: publicProcedure
     .input(registerSchema)

@@ -63,9 +63,9 @@ export const authConfig = {
 
           return {
             id: user.id,
-            email: user.email,
-            name: user.name,
-            username: user.username,
+            email: user.email ?? undefined,
+            name: user.name ?? undefined,
+            username: user.username ?? undefined,
           };
         } catch {
           return null;
@@ -81,7 +81,7 @@ export const authConfig = {
     jwt: ({ token, user }) => {
       if (user) {
         token.id = user.id;
-        token.username = user.username;
+        token.username = user.username ?? undefined;
       }
       return token;
     },
@@ -96,6 +96,5 @@ export const authConfig = {
   },
   pages: {
     signIn: "/auth/signin",
-    signUp: "/auth/signup",
   },
 } satisfies NextAuthConfig;

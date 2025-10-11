@@ -1,6 +1,9 @@
-
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from "~/server/api/trpc";
 
 export const videoRouter = createTRPCRouter({
   /**
@@ -20,6 +23,19 @@ export const videoRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { title, description, filePath, fileSize } = input;
       const userId = ctx.session.user.id;
+
+      // Content moderation
+      const { moderateVideoMetadata } = await import("~/lib/content-moderation");
+      const moderationResult = moderateVideoMetadata({
+        title,
+        description: description ?? undefined,
+      });
+
+      if (!moderationResult.allowed) {
+        throw new Error(
+          `Content policy violation: ${moderationResult.reason}. Please review our community guidelines.`
+        );
+      }
 
       const video = await ctx.db.video.create({
         data: {
@@ -67,12 +83,18 @@ export const videoRouter = createTRPCRouter({
             select: {
               id: true,
               name: true,
+              username: true,
               image: true,
             },
           },
           likes: userId ? { where: { userId } } : false,
+          bookmarks: userId ? { where: { userId } } : false,
           _count: {
-            select: { likes: true },
+            select: {
+              likes: true,
+              comments: true,
+              bookmarks: true,
+            },
           },
         },
       });
@@ -84,7 +106,16 @@ export const videoRouter = createTRPCRouter({
       }
 
       return {
-        items: items.map(item => ({ ...item, userHasLiked: item.likes.length > 0 })),
+        items: items.map((item) => ({
+          ...item,
+          // In unauthenticated requests, `likes` is `false` per include config; default to empty array
+          userHasLiked: Array.isArray(item.likes)
+            ? item.likes.length > 0
+            : false,
+          userHasBookmarked: Array.isArray(item.bookmarks)
+            ? item.bookmarks.length > 0
+            : false,
+        })),
         nextCursor,
       };
     }),
@@ -127,7 +158,157 @@ export const videoRouter = createTRPCRouter({
             },
           },
         });
+
+        // Get video owner to create notification
+        const video = await ctx.db.video.findUnique({
+          where: { id: videoId },
+          select: { userId: true },
+        });
+
+        // Don't notify if user likes their own video
+        if (video && video.userId !== userId) {
+          await ctx.db.notification.create({
+            data: {
+              type: "like",
+              content: "liked your video",
+              userId: video.userId,
+              actorId: userId,
+              videoId: videoId,
+            },
+          });
+        }
+
         return { liked: true };
       }
+    }),
+
+  /**
+   * Toggles a bookmark on a video for the currently authenticated user.
+   * If the user has already bookmarked the video, it removes it. Otherwise, it bookmarks it.
+   * @param input - The ID of the video to bookmark/unbookmark.
+   */
+  toggleBookmark: protectedProcedure
+    .input(z.object({ videoId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const { videoId } = input;
+      const userId = ctx.session.user.id;
+
+      const existingBookmark = await ctx.db.bookmark.findUnique({
+        where: {
+          userId_videoId: {
+            userId,
+            videoId,
+          },
+        },
+      });
+
+      if (existingBookmark) {
+        await ctx.db.bookmark.delete({
+          where: {
+            id: existingBookmark.id,
+          },
+        });
+        return { bookmarked: false };
+      } else {
+        await ctx.db.bookmark.create({
+          data: {
+            user: {
+              connect: { id: userId },
+            },
+            video: {
+              connect: { id: videoId },
+            },
+          },
+        });
+        return { bookmarked: true };
+      }
+    }),
+
+  /**
+   * Get liked videos for a user
+   */
+  getLikedVideos: publicProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const { userId } = input;
+      const currentUserId = ctx.session?.user.id;
+
+      // Only allow viewing own liked videos
+      if (currentUserId !== userId) {
+        return [];
+      }
+
+      const likes = await ctx.db.like.findMany({
+        where: { userId },
+        include: {
+          video: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  username: true,
+                  image: true,
+                },
+              },
+              _count: {
+                select: {
+                  likes: true,
+                  comments: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      return likes.map((like) => like.video);
+    }),
+
+  /**
+   * Get saved/bookmarked videos for a user
+   */
+  getSavedVideos: publicProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const { userId } = input;
+      const currentUserId = ctx.session?.user.id;
+
+      // Only allow viewing own saved videos
+      if (currentUserId !== userId) {
+        return [];
+      }
+
+      const bookmarks = await ctx.db.bookmark.findMany({
+        where: { userId },
+        include: {
+          video: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  username: true,
+                  image: true,
+                },
+              },
+              _count: {
+                select: {
+                  likes: true,
+                  comments: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      return bookmarks.map((bookmark) => bookmark.video);
     }),
 });

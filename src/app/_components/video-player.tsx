@@ -1,21 +1,40 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useInView } from "react-intersection-observer";
 
 interface VideoPlayerProps {
   src: string;
 }
 
 /**
- * A client-side video player component with custom controls.
+ * A client-side video player component that autoplays when in view.
  * @param {VideoPlayerProps} props - The props for the component.
  * @param {string} props.src - The URL of the video to play.
  */
 export default function VideoPlayer({ src }: VideoPlayerProps) {
+  const { ref: inViewRef, inView } = useInView({
+    threshold: 0.5, // Trigger when 50% of the video is visible
+  });
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
+  const [isHovering, setIsHovering] = useState(false);
+
+  // Play video when in view or when hovering
+  useEffect(() => {
+    if ((inView && !isPlaying) || (isHovering && !isPlaying)) {
+      void videoRef.current?.play().then(() => {
+        setIsPlaying(true);
+      }).catch(error => {
+        console.error("Autoplay failed:", error);
+      });
+    } else if (!inView && !isHovering && isPlaying) {
+      videoRef.current?.pause();
+      setIsPlaying(false);
+    }
+  }, [inView, isHovering, isPlaying]);
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -64,13 +83,26 @@ export default function VideoPlayer({ src }: VideoPlayerProps) {
     };
   }, []);
 
+  const setRefs = (node: HTMLVideoElement | null) => {
+    if (node) {
+      inViewRef(node);
+    }
+  };
+
   return (
-    <div className="relative w-full h-full group">
+    <div 
+      className="relative w-full h-full group"
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+    >
       <video
-        ref={videoRef}
+        ref={setRefs}
         src={src}
+        key={src}
         className="w-full h-full object-contain bg-black rounded-lg"
         loop
+        muted
+        playsInline // Important for iOS autoplay
         onClick={togglePlay}
       />
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black bg-opacity-30 rounded-lg">

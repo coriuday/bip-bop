@@ -72,6 +72,17 @@ export async function POST(req: Request) {
     const fileExtension = file.name.split(".").pop() ?? "mp4";
     const fileName = `videos/${session.user.id}-${Date.now()}.${fileExtension}`;
 
+    // Check if Blob storage is configured
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      return NextResponse.json(
+        { 
+          error: "Video storage not configured. Please contact the administrator.",
+          details: "BLOB_READ_WRITE_TOKEN is missing"
+        },
+        { status: 503 }
+      );
+    }
+
     // Upload to Vercel Blob Storage
     const blob = await put(fileName, file, {
       access: "public",
@@ -86,8 +97,12 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Upload error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Error uploading file. Please try again." },
+      { 
+        error: "Error uploading file. Please try again.",
+        details: errorMessage
+      },
       { status: 500 }
     );
   }

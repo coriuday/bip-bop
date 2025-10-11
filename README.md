@@ -508,7 +508,7 @@ await trpc.comment.create.mutate({
 1. **Clone the repository**
 ```bash
 git clone https://github.com/coriuday/bip-bop.git
-cd video-platform
+cd {repo_name}
 ```
 
 2. **Install dependencies**

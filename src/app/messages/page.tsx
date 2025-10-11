@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { api } from "~/trpc/react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
@@ -14,7 +14,7 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { MessageStatus } from "~/app/_components/message-status";
 
-export default function MessagesPage() {
+function MessagesContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const recipientId = searchParams.get("recipientId");
@@ -406,3 +406,15 @@ export default function MessagesPage() {
   );
 }
 
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center bg-[#0a0a0a]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#FE2C55]" />
+      </div>
+    }>
+      <MessagesContent />
+    </Suspense>
+  );
+}

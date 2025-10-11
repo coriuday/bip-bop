@@ -1,12 +1,9 @@
-
 import { NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
-import { existsSync } from "fs";
+import { put } from "@vercel/blob";
 import { auth } from "~/server/auth";
 import { moderateVideoMetadata } from "~/lib/content-moderation";
 
-const MAX_FILE_SIZE = 1024 * 1024 * 100; // 100MB (increased)
+const MAX_FILE_SIZE = 1024 * 1024 * 100; // 100MB
 const ALLOWED_FILE_TYPES = [
   "video/mp4",
   "video/quicktime",
@@ -19,7 +16,7 @@ const ALLOWED_FILE_TYPES = [
 /**
  * A Next.js API route for handling video file uploads.
  * It accepts a POST request with `multipart/form-data`.
- * Validates the file for size and type and saves it to the `public/uploads` directory.
+ * Validates the file for size and type and uploads to Vercel Blob Storage.
  * Includes content moderation and authentication checks.
  * @param {Request} req - The incoming request object.
  * @returns {NextResponse} - A JSON response indicating success or failure.
@@ -71,37 +68,29 @@ export async function POST(req: Request) {
       );
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // Ensure uploads directory exists
-    const uploadsDir = join(process.cwd(), "public", "uploads");
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
-
     // Generate unique filename
     const fileExtension = file.name.split(".").pop() ?? "mp4";
-    const fileName = `${session.user.id}-${Date.now()}.${fileExtension}`;
-    const filePath = join(uploadsDir, fileName);
+    const fileName = `videos/${session.user.id}-${Date.now()}.${fileExtension}`;
 
-    // Save file
-    await writeFile(filePath, buffer);
+    // Upload to Vercel Blob Storage
+    const blob = await put(fileName, file, {
+      access: "public",
+      addRandomSuffix: false,
+    });
 
     return NextResponse.json({
       success: true,
-      filePath: `/uploads/${fileName}`,
+      filePath: blob.url,
       fileSize: file.size,
       message: "Video uploaded successfully",
     });
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json(
-      { error: "Error saving file. Please try again." },
+      { error: "Error uploading file. Please try again." },
       { status: 500 }
     );
   }
 }
 
-// Ensure Node.js runtime (not Edge) so that Buffer and fs/promises are available
 export const runtime = "nodejs";

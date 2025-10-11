@@ -46,6 +46,7 @@ export default function LikeButton({ videoId, initialLikes, userHasLiked }: Like
                 return {
                   ...item,
                   _count: {
+                    ...item._count,
                     likes: item._count.likes + (liked ? -1 : 1),
                   },
                   userHasLiked: !liked,

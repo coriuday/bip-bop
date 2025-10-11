@@ -44,7 +44,7 @@ BipBop is a production-ready short-form video sharing platform that replicates c
 
 #### 👤 User Management
 - User registration and authentication
-- OAuth integration (Google, Facebook)
+- OAuth integration (Google, Facebook) [Future Implementation]
 - Profile customization (avatar, bio, username)
 - Account settings and privacy controls
 

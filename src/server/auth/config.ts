@@ -1,6 +1,8 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { type DefaultSession, type NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
+import FacebookProvider from "next-auth/providers/facebook";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
@@ -17,11 +19,13 @@ declare module "next-auth" {
     user: {
       id: string;
       username?: string;
+      bio?: string;
     } & DefaultSession["user"];
   }
 
   interface User {
     username?: string;
+    bio?: string;
   }
 }
 
@@ -31,12 +35,22 @@ declare module "next-auth" {
  * @see https://next-auth.js.org/configuration/options
  */
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().transform((v) => v.trim().toLowerCase()),
   password: z.string().min(6),
 });
 
 export const authConfig = {
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      allowDangerousEmailAccountLinking: true,
+    }),
+    FacebookProvider({
+      clientId: process.env.FACEBOOK_CLIENT_ID ?? "",
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET ?? "",
+      allowDangerousEmailAccountLinking: true,
+    }),
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -78,10 +92,16 @@ export const authConfig = {
     strategy: "jwt",
   },
   callbacks: {
-    jwt: ({ token, user }) => {
+    jwt: ({ token, user, trigger, session }) => {
       if (user) {
         token.id = user.id;
         token.username = user.username ?? undefined;
+        token.bio = user.bio ?? undefined;
+      }
+      // Handle session updates
+      if (trigger === "update" && session) {
+        token.username = session.user?.username ?? token.username;
+        token.bio = session.user?.bio ?? token.bio;
       }
       return token;
     },
@@ -90,7 +110,8 @@ export const authConfig = {
       user: {
         ...session.user,
         id: token.id as string,
-        username: token.username as string,
+        username: token.username as string | undefined,
+        bio: token.bio as string | undefined,
       },
     }),
   },

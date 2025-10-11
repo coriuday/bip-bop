@@ -44,3 +44,31 @@ yarn-error.log*
 
 # idea files
 .idea
+
+# uploads
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+# scripts (optional - uncomment if you don't want to commit scripts)
+# /scripts
+
+# documentation (moved to ../docs)
+*.md
+!README.md
+
+# temporary files
+*.txt
+*.log
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Editor files
+.vscode/
+*.swp
+*.swo
+*~
+
+# Build info
+tsconfig.tsbuildinfo

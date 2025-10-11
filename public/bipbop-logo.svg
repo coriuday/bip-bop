@@ -1,0 +1,36 @@
+<svg width="120" height="40" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with rounded corners -->
+  <rect width="120" height="40" rx="12" fill="#1A202C"/>
+  
+  <!-- Animated play button icon -->
+  <g>
+    <circle cx="25" cy="20" r="10" fill="#38BDF8">
+      <animate attributeName="r" values="10;11;10" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <polygon points="22,15 22,25 30,20" fill="#1A202C"/>
+  </g>
+  
+  <!-- Text with gradient effect -->
+  <defs>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8">
+        <animate attributeName="stop-color" values="#38BDF8;#F472B6;#38BDF8" dur="4s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="100%" stop-color="#F472B6">
+        <animate attributeName="stop-color" values="#F472B6;#38BDF8;#F472B6" dur="4s" repeatCount="indefinite"/>
+      </stop>
+    </linearGradient>
+  </defs>
+  
+  <!-- Text with gradient fill -->
+  <text x="45" y="25" font-family="'Segoe UI', Arial, sans-serif" font-size="20" font-weight="bold" fill="url(#textGradient)">bip bop</text>
+  
+  <!-- Decorative elements -->
+  <circle cx="105" cy="15" r="3" fill="#38BDF8">
+    <animate attributeName="cy" values="15;17;15" dur="1.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="112" cy="20" r="2" fill="#F472B6">
+    <animate attributeName="cy" values="20;18;20" dur="1.5s" repeatCount="indefinite"/>
+  </circle>
+</svg>
+

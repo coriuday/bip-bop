@@ -21,14 +21,17 @@ export const authRouter = createTRPCRouter({
   register: publicProcedure
     .input(registerSchema)
     .mutation(async ({ input, ctx }) => {
-      const { username, email, password, name } = input;
+      const usernameTrimmed = input.username.trim();
+      const nameTrimmed = input.name.trim();
+      const emailNormalized = input.email.trim().toLowerCase();
+      const { password } = input;
 
       // Check if user already exists
       const existingUser = await ctx.db.user.findFirst({
         where: {
           OR: [
-            { email },
-            { username },
+            { email: emailNormalized },
+            { username: usernameTrimmed },
           ],
         },
       });
@@ -36,7 +39,7 @@ export const authRouter = createTRPCRouter({
       if (existingUser) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: existingUser.email === email 
+          message: existingUser.email === emailNormalized 
             ? "User with this email already exists" 
             : "Username is already taken",
         });
@@ -48,10 +51,10 @@ export const authRouter = createTRPCRouter({
       // Create user
       const user = await ctx.db.user.create({
         data: {
-          username,
-          email,
+          username: usernameTrimmed,
+          email: emailNormalized,
           password: hashedPassword,
-          name,
+          name: nameTrimmed,
         },
         select: {
           id: true,

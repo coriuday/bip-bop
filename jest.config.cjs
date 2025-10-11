@@ -1,7 +1,7 @@
 const nextJest = require('next/jest').default;
 
 const createJestConfig = nextJest({
-  dir: './',
+  dir: './'
 });
 
 /** @type {import('jest').Config} */
@@ -15,14 +15,14 @@ const customJestConfig = {
   moduleNameMapper: {
     '^~/(.*)$': '<rootDir>/src/$1',
   },
-  // Explicitly use ts-jest for ts/tsx files
   transform: {
-    '^.+\\.(\\ts|\\tsx)$': 'ts-jest',
+    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
   },
-  // Redefined the ignore pattern to be more explicit
   transformIgnorePatterns: [
-    '/node_modules/(?!(superjson|next-auth|@auth/prisma-adapter|d3-.*|internmap|delaunator|robust-predicates))/',
+    '<rootDir>/node_modules/(?!(superjson|next-auth|@auth/prisma-adapter))',
   ],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
 };
 
 module.exports = createJestConfig(customJestConfig);

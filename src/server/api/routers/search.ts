@@ -11,7 +11,7 @@ export const searchRouter = createTRPCRouter({
         query: z.string().min(1),
         type: z.enum(["all", "users", "videos"]).default("all"),
         limit: z.number().min(1).max(50).default(20),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       const { query, type, limit } = input;
@@ -120,7 +120,7 @@ export const searchRouter = createTRPCRouter({
     .input(
       z.object({
         limit: z.number().min(1).max(50).default(10),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       const users = await ctx.db.user.findMany({
@@ -154,7 +154,7 @@ export const searchRouter = createTRPCRouter({
     .input(
       z.object({
         limit: z.number().min(1).max(50).default(10),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       const videos = await ctx.db.video.findMany({

@@ -16,8 +16,41 @@ export const searchRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const { query, type, limit } = input;
 
-      let users: Awaited<ReturnType<typeof ctx.db.user.findMany>> = [];
-      let videos: Awaited<ReturnType<typeof ctx.db.video.findMany>> = [];
+      type UserResult = {
+        id: string;
+        name: string | null;
+        username: string | null;
+        image: string | null;
+        _count: {
+          followers: number;
+          videos: number;
+        };
+      };
+
+      type VideoResult = {
+        id: number;
+        title: string | null;
+        description: string | null;
+        filePath: string;
+        fileSize: number;
+        duration: number | null;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        user: {
+          id: string;
+          name: string | null;
+          username: string | null;
+          image: string | null;
+        };
+        _count: {
+          likes: number;
+          comments: number;
+        };
+      };
+
+      let users: UserResult[] = [];
+      let videos: VideoResult[] = [];
 
       if (type === "all" || type === "users") {
         users = await ctx.db.user.findMany({

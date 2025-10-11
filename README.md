@@ -507,7 +507,7 @@ await trpc.comment.create.mutate({
 
 1. **Clone the repository**
 ```bash
-git clone <repository-url>
+git clone https://github.com/coriuday/bip-bop.git
 cd video-platform
 ```
 
@@ -877,7 +877,7 @@ npm run build
 
 ## 📚 Additional Documentation
 
-Comprehensive guides are available in the `../docs/` folder:
+Comprehensive guides are available in the `docs/` folder:
 
 ### Setup & Configuration
 - `START_HERE.txt` - Quick start guide
@@ -940,8 +940,7 @@ This project is created for educational and assessment purposes.
 
 ## 👥 Authors
 
-- **Developer**: [Your Name]
-- **Project**: Callus Company Inc. Assessment
+- **Developer**: Uday Kumar Kori
 - **Date**: October 2025
 
 ## 🙏 Acknowledgments
@@ -963,7 +962,7 @@ For questions or issues:
 
 ## 🎯 Assessment Compliance
 
-This project fulfills all requirements for the Callus Company Inc. Full Stack Web Developer assessment:
+This project fulfills all requirements for Full Stack Web Developer assessment:
 
 ✅ **Backend Setup**: Next.js, TypeScript, tRPC, PostgreSQL
 ✅ **Database Schema**: Users, Videos, Likes (+ 7 more tables)
@@ -973,8 +972,6 @@ This project fulfills all requirements for the Callus Company Inc. Full Stack We
 ✅ **Git History**: Full commit history with clear messages
 ✅ **Code Quality**: Clean, modular, well-documented
 ✅ **Functional**: All features work end-to-end
-
-**Status**: Ready for submission (pending demo video)
 
 ---
 

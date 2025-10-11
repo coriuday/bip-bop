@@ -1,5 +1,11 @@
 import { authRouter } from "~/server/api/routers/auth";
 import { videoRouter } from "~/server/api/routers/video";
+import { userRouter } from "~/server/api/routers/user";
+import { commentRouter } from "~/server/api/routers/comment";
+import { followRouter } from "~/server/api/routers/follow";
+import { searchRouter } from "~/server/api/routers/search";
+import { messageRouter } from "~/server/api/routers/message";
+import { notificationRouter } from "~/server/api/routers/notification";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -10,6 +16,12 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 export const appRouter = createTRPCRouter({
   auth: authRouter,
   video: videoRouter,
+  user: userRouter,
+  comment: commentRouter,
+  follow: followRouter,
+  search: searchRouter,
+  message: messageRouter,
+  notification: notificationRouter,
 });
 
 // export type definition of API

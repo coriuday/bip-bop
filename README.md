@@ -10,6 +10,12 @@
 
 ## 📋 Table of Contents
 
+## 🚀 Aurora Migration
+
+This repository is now starting the migration from BipBop into **Aurora** (a resilient chat + reels platform).
+The Phase 0 architecture blueprint is documented in `docs/AURORA_ARCHITECTURE.md`.
+
+
 - [Overview](#overview)
 - [Features](#features)
 - [Tech Stack](#tech-stack)

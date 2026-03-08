@@ -301,6 +301,6 @@ export const videoRouter = createTRPCRouter({
         },
       });
 
-      return bookmarks.map((bookmark) => bookmark.video);
+      return bookmarks.map((bookmark: (typeof bookmarks)[number]) => bookmark.video);
     }),
 });

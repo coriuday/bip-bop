@@ -41,14 +41,31 @@ export default function UserProfile({ user }: UserProfileProps) {
     { enabled: !isOwnProfile }
   );
 
-  // Follow mutation
+  // Optimistic local follow state
+  const [optimisticFollowing, setOptimisticFollowing] = useState<boolean | null>(null);
+  const [optimisticFollowerCount, setOptimisticFollowerCount] = useState(
+    user._count?.followers ?? 0
+  );
+
+  // Derived follow status: prefer optimistic state, fall back to server
+  const isFollowing = optimisticFollowing ?? followStatus?.following ?? false;
+
+  // Follow mutation with optimistic UI
   const toggleFollowMutation = api.follow.toggleFollow.useMutation({
+    onMutate: () => {
+      const wasFollowing = isFollowing;
+      setOptimisticFollowing(!wasFollowing);
+      setOptimisticFollowerCount((prev) => prev + (wasFollowing ? -1 : 1));
+    },
     onSuccess: () => {
       void utils.follow.isFollowing.invalidate();
       void utils.user.getByUsername.invalidate();
-      toast.success(followStatus?.following ? "Unfollowed" : "Following!");
+      toast.success(isFollowing ? "Unfollowed" : "Following!");
     },
     onError: (error) => {
+      // Roll back on error
+      setOptimisticFollowing(followStatus?.following ?? false);
+      setOptimisticFollowerCount(user._count?.followers ?? 0);
       toast.error(error.message);
     },
   });
@@ -109,21 +126,21 @@ export default function UserProfile({ user }: UserProfileProps) {
     }
   };
 
-  // Fetch liked videos
+  // Fetch liked videos (no args — server derives userId from session)
   const { data: likedVideos } = api.video.getLikedVideos.useQuery(
-    { userId: user.id },
-    { enabled: activeTab === 'liked' && (isOwnProfile || false) }
+    undefined,
+    { enabled: activeTab === 'liked' && isOwnProfile }
   );
 
-  // Fetch saved videos
+  // Fetch saved videos (no args — server derives userId from session)
   const { data: savedVideos } = api.video.getSavedVideos.useQuery(
-    { userId: user.id },
-    { enabled: activeTab === 'saved' && (isOwnProfile || false) }
+    undefined,
+    { enabled: activeTab === 'saved' && isOwnProfile }
   );
 
   const stats = [
     { label: 'Following', value: user._count?.following ?? 0 },
-    { label: 'Followers', value: user._count?.followers ?? 0 },
+    { label: 'Followers', value: optimisticFollowerCount },
     { label: 'Likes', value: user.videos?.reduce((acc, v) => acc + v._count.likes, 0) ?? 0 },
   ];
 
@@ -179,12 +196,12 @@ export default function UserProfile({ user }: UserProfileProps) {
                   ) : (
                     <>
                       <Button 
-                        variant={followStatus?.following ? "secondary" : "primary"} 
+                        variant={isFollowing ? "secondary" : "primary"} 
                         size="md"
                         onClick={handleFollow}
                         isLoading={toggleFollowMutation.isPending}
                       >
-                        {followStatus?.following ? "Following" : "Follow"}
+                        {isFollowing ? "Following" : "Follow"}
                       </Button>
                       <Button 
                         variant="secondary" 

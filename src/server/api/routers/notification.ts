@@ -2,36 +2,55 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const notificationRouter = createTRPCRouter({
-  getAll: protectedProcedure.query(async ({ ctx }) => {
-    const notifications = await ctx.db.notification.findMany({
-      where: {
-        userId: ctx.session.user.id,
-      },
-      include: {
-        actor: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            image: true,
-          },
-        },
-        video: {
-          select: {
-            id: true,
-            title: true,
-            filePath: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 50,
-    });
+  getAll: protectedProcedure
+    .input(
+      z
+        .object({
+          cursor: z.string().optional(),
+          limit: z.number().min(1).max(50).default(20),
+        })
+        .optional()
+    )
+    .query(async ({ ctx, input }) => {
+      const limit = input?.limit ?? 20;
+      const cursor = input?.cursor;
 
-    return notifications;
-  }),
+      const notifications = await ctx.db.notification.findMany({
+        where: {
+          userId: ctx.session.user.id,
+        },
+        include: {
+          actor: {
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              image: true,
+            },
+          },
+          video: {
+            select: {
+              id: true,
+              title: true,
+              filePath: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: limit + 1, // Fetch one extra to determine if there's a next page
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      });
+
+      let nextCursor: string | undefined;
+      if (notifications.length > limit) {
+        const lastItem = notifications.pop();
+        nextCursor = lastItem?.id;
+      }
+
+      return { items: notifications, nextCursor };
+    }),
 
   getUnreadCount: protectedProcedure.query(async ({ ctx }) => {
     const count = await ctx.db.notification.count({

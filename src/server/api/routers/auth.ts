@@ -6,10 +6,23 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { checkRateLimit } from "~/lib/rate-limit";
 
 const registerSchema = z.object({
-  username: z.string().min(3).max(50),
-  email: z.string().email(),
-  password: z.string().min(6),
-  name: z.string().min(1).max(100),
+  username: z
+    .string()
+    .min(3, "Username must be at least 3 characters")
+    .max(30, "Username must be at most 30 characters")
+    .regex(
+      /^[a-zA-Z0-9_.]+$/,
+      "Username can only contain letters, numbers, underscores, and dots"
+    ),
+  email: z.string().email("Please enter a valid email address"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+    ),
+  name: z.string().min(1, "Name is required").max(100),
 });
 
 /**

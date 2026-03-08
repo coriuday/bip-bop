@@ -13,9 +13,10 @@ import {
 const buildEvent = (overrides: Partial<EventEnvelope>): EventEnvelope =>
   parseEventEnvelope({
     id: "5bde7257-b6eb-489b-a950-23ed38632fe4",
+    type: "message:send",
     conversationId: "conversation-1",
     senderId: "user-1",
-    createdAt: 1700000000,
+    timestamp: 1700000000,
     vectorClock: { "device-a": 1 },
     payload: {
       body: "hello",
@@ -57,12 +58,12 @@ describe("reconcileEventPair", () => {
     const left = buildEvent({
       id: "f63b16f6-a0d8-4674-a786-31326faf7f98",
       vectorClock: { a: 2, b: 0 },
-      createdAt: 100,
+      timestamp: 100,
     });
     const right = buildEvent({
       id: "69144f57-5e51-43e7-b7cb-f9f4f1f91311",
       vectorClock: { a: 1, b: 1 },
-      createdAt: 200,
+      timestamp: 200,
     });
 
     const outcome = reconcileEventPair(left, right);
@@ -76,12 +77,12 @@ describe("reconcileEventPair", () => {
     const left = buildEvent({
       id: "0f3b16f6-a0d8-4674-a786-31326faf7f98",
       vectorClock: { a: 2, b: 1 },
-      createdAt: 100,
+      timestamp: 100,
     });
     const right = buildEvent({
       id: "9f144f57-5e51-43e7-b7cb-f9f4f1f91311",
       vectorClock: { a: 2, b: 1 },
-      createdAt: 200,
+      timestamp: 200,
     });
 
     const forward = reconcileEventPair(left, right);

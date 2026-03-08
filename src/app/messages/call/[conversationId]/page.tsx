@@ -147,8 +147,8 @@ export default function CallPage() {
             {/* Controls Overlay */}
             <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-6 bg-gradient-to-t from-black/80 to-transparent p-6 pb-8">
                 <Button
-                    size="icon"
-                    variant={isMuted ? "destructive" : "secondary"}
+                    size="lg"
+                    variant={isMuted ? "primary" : "secondary"}
                     className="h-14 w-14 rounded-full shadow-lg"
                     onClick={toggleMute}
                 >
@@ -156,8 +156,8 @@ export default function CallPage() {
                 </Button>
 
                 <Button
-                    size="icon"
-                    variant="destructive"
+                    size="lg"
+                    variant="primary"
                     className="h-16 w-16 rounded-full shadow-lg hover:bg-red-600"
                     onClick={handleEndCall}
                 >
@@ -165,8 +165,8 @@ export default function CallPage() {
                 </Button>
 
                 <Button
-                    size="icon"
-                    variant={isVideoOff ? "destructive" : "secondary"}
+                    size="lg"
+                    variant={isVideoOff ? "primary" : "secondary"}
                     className="h-14 w-14 rounded-full shadow-lg"
                     onClick={toggleVideo}
                 >

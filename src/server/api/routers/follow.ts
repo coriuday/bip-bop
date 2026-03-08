@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { NotificationType } from "@prisma/client";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
 
 
@@ -58,7 +59,7 @@ export const followRouter = createTRPCRouter({
 
         await ctx.db.notification.create({
           data: {
-            type: "follow",
+            type: NotificationType.follow,
             content: "started following you",
             userId: userId,
             actorId: currentUserId,

@@ -223,22 +223,25 @@ export default function VideoCard({
       </div>
 
       {/* Top gradient overlay */}
-      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/60 to-transparent z-10" />
+      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/60 to-transparent z-10 pointer-events-none" />
 
-      {/* Bottom gradient overlay */}
-      <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10" />
+      {/* Full screen gradient overlay for consistent contrast */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/80 z-10 pointer-events-none" />
 
       {/* User info and description */}
       <div className="absolute bottom-20 left-4 right-20 z-20 text-white">
         <div className="flex items-center gap-3 mb-3">
-          <motion.div whileHover={{ scale: 1.1 }}>
+          <motion.div 
+            whileHover={{ scale: 1.1 }}
+            className="rounded-full border-2 border-[#7c3aed] shadow-[0_0_10px_rgba(124,58,237,0.5)] p-[2px]"
+          >
             <Avatar
               fallback={username.charAt(0).toUpperCase()}
               size="lg"
             />
           </motion.div>
           <div className="flex-1">
-            <h2 className="text-base font-semibold">@{username}</h2>
+            <h2 className="text-lg font-bold drop-shadow-md">@{username}</h2>
           </div>
           {session && userId !== session.user.id && (
             <Button
@@ -246,6 +249,7 @@ export default function VideoCard({
               size="sm"
               onClick={handleFollow}
               disabled={toggleFollowMutation.isPending}
+              className="px-3 py-1 rounded-full bg-transparent border border-white/30 text-white text-xs font-semibold backdrop-blur-md hover:bg-white/10"
             >
               {following ? "Following" : "Follow"}
             </Button>
@@ -253,12 +257,12 @@ export default function VideoCard({
         </div>
 
         {description && (
-          <p className="text-sm leading-relaxed mb-2 line-clamp-2">{description}</p>
+          <p className="text-sm leading-relaxed mb-3 drop-shadow-md line-clamp-2">{description}</p>
         )}
 
-        <div className="flex items-center gap-2 text-xs opacity-80">
-          <span>♫</span>
-          <span className="truncate">Original sound - {username}</span>
+        <div className="flex items-center gap-2 mt-3 bg-white/10 w-fit px-3 py-1.5 rounded-full backdrop-blur-md">
+          <span className="text-white text-xs opacity-80">♫</span>
+          <span className="text-white text-xs font-medium truncate w-48 drop-shadow-md">Original sound - {username}</span>
         </div>
       </div>
 
@@ -269,7 +273,7 @@ export default function VideoCard({
           whileTap={{ scale: 0.9 }}
           onClick={handleLike}
           disabled={toggleLikeMutation.isPending}
-          className="flex flex-col items-center gap-1"
+          className="flex flex-col items-center gap-1 group"
         >
           <motion.div
             animate={liked ? { scale: [1, 1.3, 1] } : {}}
@@ -277,18 +281,18 @@ export default function VideoCard({
             className="relative"
           >
             <div className={cn(
-              "rounded-full p-3 backdrop-blur-sm transition-colors",
-              liked ? "bg-[#FE2C55]/20" : "bg-black/20"
+              "flex items-center justify-center rounded-full p-3 backdrop-blur-md border border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.1)] transition-colors",
+              liked ? "bg-[#ec4899]/20" : "bg-white/10 group-hover:bg-white/20"
             )}>
               <Heart
                 className={cn(
                   "h-7 w-7 transition-all",
-                  liked ? "fill-[#FE2C55] text-[#FE2C55]" : "text-white"
+                  liked ? "fill-[#ec4899] text-[#ec4899]" : "text-white"
                 )}
               />
             </div>
           </motion.div>
-          <span className="text-white text-xs font-semibold drop-shadow-lg">
+          <span className="text-white text-xs font-bold drop-shadow-md">
             {formatNumber(likes)}
           </span>
         </motion.button>
@@ -297,22 +301,22 @@ export default function VideoCard({
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={handleComment}
-          className="flex flex-col items-center gap-1"
+          className="flex flex-col items-center gap-1 group"
         >
-          <div className="rounded-full p-3 bg-black/20 backdrop-blur-sm">
+          <div className="flex items-center justify-center rounded-full p-3 bg-white/10 backdrop-blur-md border border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.1)] group-hover:bg-white/20 transition-colors">
             <MessageCircle className="h-7 w-7 text-white" />
           </div>
-          <span className="text-white text-xs font-semibold drop-shadow-lg">
+          <span className="text-white text-xs font-bold drop-shadow-md">
             {formatNumber(comments)}
           </span>
         </motion.button>
 
         {/* Views */}
-        <div className="flex flex-col items-center gap-1">
-          <div className="rounded-full p-3 bg-black/20 backdrop-blur-sm">
+        <div className="flex flex-col items-center gap-1 group">
+          <div className="flex items-center justify-center rounded-full p-3 bg-white/10 backdrop-blur-md border border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.1)] transition-colors">
             <Eye className="h-7 w-7 text-white" />
           </div>
-          <span className="text-white text-xs font-semibold drop-shadow-lg">
+          <span className="text-white text-xs font-bold drop-shadow-md">
             {formatNumber(views)}
           </span>
         </div>
@@ -322,15 +326,15 @@ export default function VideoCard({
           whileTap={{ scale: 0.9 }}
           onClick={handleBookmark}
           disabled={toggleBookmarkMutation.isPending}
-          className="flex flex-col items-center gap-1"
+          className="flex flex-col items-center gap-1 group"
         >
           <motion.div
             animate={bookmarked ? { scale: [1, 1.3, 1] } : {}}
             transition={{ duration: 0.3 }}
           >
             <div className={cn(
-              "rounded-full p-3 backdrop-blur-sm transition-colors",
-              bookmarked ? "bg-yellow-500/20" : "bg-black/20"
+              "flex items-center justify-center rounded-full p-3 backdrop-blur-md border border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.1)] transition-colors",
+              bookmarked ? "bg-yellow-500/20" : "bg-white/10 group-hover:bg-white/20"
             )}>
               <Bookmark
                 className={cn(
@@ -346,9 +350,9 @@ export default function VideoCard({
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={handleShare}
-          className="flex flex-col items-center gap-1"
+          className="flex flex-col items-center gap-1 group"
         >
-          <div className="rounded-full p-3 bg-black/20 backdrop-blur-sm">
+          <div className="flex items-center justify-center rounded-full p-3 bg-white/10 backdrop-blur-md border border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.1)] group-hover:bg-white/20 transition-colors">
             <Share2 className="h-7 w-7 text-white" />
           </div>
         </motion.button>

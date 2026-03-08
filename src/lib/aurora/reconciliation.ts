@@ -6,8 +6,8 @@ import {
 } from "~/lib/aurora/vector-clock";
 
 const tieBreak = (left: EventEnvelope, right: EventEnvelope): EventEnvelope => {
-  if (left.createdAt !== right.createdAt) {
-    return left.createdAt > right.createdAt ? left : right;
+  if (left.timestamp !== right.timestamp) {
+    return left.timestamp > right.timestamp ? left : right;
   }
 
   return left.id > right.id ? left : right;

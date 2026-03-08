@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { MessageStatus } from "@prisma/client";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { checkRateLimit } from "~/lib/rate-limit";
 
@@ -53,14 +55,21 @@ export const messageRouter = createTRPCRouter({
    * Get messages for a specific conversation
    */
   getMessages: protectedProcedure
-    .input(z.object({ conversationId: z.string() }))
+    .input(
+      z.object({
+        conversationId: z.string(),
+        cursor: z.string().optional(),
+        limit: z.number().min(1).max(100).default(30),
+      })
+    )
     .query(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
+      const { conversationId, cursor, limit } = input;
 
       // Security: verify the caller is a participant in this conversation
       const participant = await ctx.db.conversationParticipant.findFirst({
         where: {
-          conversationId: input.conversationId,
+          conversationId,
           userId,
         },
       });
@@ -73,9 +82,7 @@ export const messageRouter = createTRPCRouter({
       }
 
       const messages = await ctx.db.message.findMany({
-        where: {
-          conversationId: input.conversationId,
-        },
+        where: { conversationId },
         include: {
           sender: {
             select: {
@@ -86,12 +93,18 @@ export const messageRouter = createTRPCRouter({
             },
           },
         },
-        orderBy: {
-          createdAt: "asc",
-        },
+        orderBy: { createdAt: "asc" },
+        take: limit + 1,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       });
 
-      return messages;
+      let nextCursor: string | undefined;
+      if (messages.length > limit) {
+        const nextItem = messages.pop();
+        nextCursor = nextItem?.id;
+      }
+
+      return { items: messages, nextCursor };
     }),
 
   /**
@@ -213,10 +226,10 @@ export const messageRouter = createTRPCRouter({
         where: {
           conversationId: input.conversationId,
           senderId: { not: userId }, // Only mark others' messages
-          status: { not: "read" },
+          status: { not: MessageStatus.read },
         },
         data: {
-          status: "read",
+          status: MessageStatus.read,
           readAt: new Date(),
         },
       });
@@ -236,10 +249,10 @@ export const messageRouter = createTRPCRouter({
         where: {
           conversationId: input.conversationId,
           senderId: { not: userId },
-          status: "sent",
+          status: MessageStatus.sent,
         },
         data: {
-          status: "delivered",
+          status: MessageStatus.delivered,
         },
       });
 

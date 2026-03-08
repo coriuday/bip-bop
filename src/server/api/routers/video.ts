@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { NotificationType } from "@prisma/client";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -21,10 +22,11 @@ export const videoRouter = createTRPCRouter({
         description: z.string().max(500).optional(),
         filePath: z.string().min(1),
         fileSize: z.number().min(1),
+        duration: z.number().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { title, description, filePath, fileSize } = input;
+      const { title, description, filePath, fileSize, duration } = input;
       const userId = ctx.session.user.id;
 
       // Rate limit: 10 uploads per hour per user
@@ -49,6 +51,7 @@ export const videoRouter = createTRPCRouter({
           description,
           filePath,
           fileSize,
+          duration,
           user: {
             connect: {
               id: userId,
@@ -175,7 +178,7 @@ export const videoRouter = createTRPCRouter({
         if (video && video.userId !== userId) {
           await ctx.db.notification.create({
             data: {
-              type: "like",
+              type: NotificationType.like,
               content: "liked your video",
               userId: video.userId,
               actorId: userId,
@@ -231,11 +234,64 @@ export const videoRouter = createTRPCRouter({
     }),
 
   /**
+   * Record a video view (with 24h deduplication per user)
+   */
+  recordView: protectedProcedure
+    .input(z.object({ videoId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const { videoId } = input;
+      const userId = ctx.session.user.id;
+
+      // Check if user viewed this video in the last 24 hours
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      
+      const recentView = await ctx.db.videoView.findFirst({
+        where: {
+          videoId,
+          userId,
+          viewedAt: {
+            gte: yesterday
+          }
+        }
+      });
+
+      if (recentView) {
+        return { success: false, reason: "Already viewed recently" };
+      }
+
+      // Record new view
+      await ctx.db.$transaction([
+        ctx.db.videoView.create({
+          data: {
+            videoId,
+            userId,
+          }
+        }),
+        ctx.db.video.update({
+          where: { id: videoId },
+          data: {
+            viewCount: { increment: 1 }
+          }
+        })
+      ]);
+
+      return { success: true };
+    }),
+
+  /**
    * Get liked videos for the currently authenticated user
    */
   getLikedVideos: protectedProcedure
-    .query(async ({ ctx }) => {
+    .input(
+      z.object({
+        cursor: z.number().optional(),
+        limit: z.number().min(1).max(50).default(20),
+      }).optional()
+    )
+    .query(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
+      const limit = input?.limit ?? 20;
+      const cursor = input?.cursor;
 
       const likes = await ctx.db.like.findMany({
         where: { userId },
@@ -259,20 +315,34 @@ export const videoRouter = createTRPCRouter({
             },
           },
         },
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
+        take: limit + 1,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       });
 
-      return likes.map((like) => like.video);
+      let nextCursor: number | undefined;
+      if (likes.length > limit) {
+        const nextItem = likes.pop();
+        nextCursor = nextItem?.id;
+      }
+
+      return { items: likes.map((l) => l.video), nextCursor };
     }),
 
   /**
    * Get saved/bookmarked videos for the currently authenticated user
    */
   getSavedVideos: protectedProcedure
-    .query(async ({ ctx }) => {
+    .input(
+      z.object({
+        cursor: z.number().optional(),
+        limit: z.number().min(1).max(50).default(20),
+      }).optional()
+    )
+    .query(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
+      const limit = input?.limit ?? 20;
+      const cursor = input?.cursor;
 
       const bookmarks = await ctx.db.bookmark.findMany({
         where: { userId },
@@ -296,11 +366,31 @@ export const videoRouter = createTRPCRouter({
             },
           },
         },
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
+        take: limit + 1,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       });
 
-      return bookmarks.map((bookmark: (typeof bookmarks)[number]) => bookmark.video);
+      let nextCursor: number | undefined;
+      if (bookmarks.length > limit) {
+        const nextItem = bookmarks.pop();
+        nextCursor = nextItem?.id;
+      }
+
+      return { items: bookmarks.map((b) => b.video), nextCursor };
+    }),
+
+  /**
+   * Delete a video owned by the authenticated user
+   */
+  deleteVideo: protectedProcedure
+    .input(z.object({ videoId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const video = await ctx.db.video.findUnique({ where: { id: input.videoId } });
+      if (!video) throw new Error("Video not found");
+      if (video.userId !== ctx.session.user.id) throw new Error("Unauthorized");
+      
+      await ctx.db.video.delete({ where: { id: input.videoId } });
+      return { success: true };
     }),
 });

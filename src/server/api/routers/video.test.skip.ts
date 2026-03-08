@@ -3,7 +3,7 @@
 // NOTE: Skipped due to Jest/ESM incompatibility with superjson/next-auth as of 2025.
 import { describe, beforeEach, jest, it, expect, beforeAll } from '@jest/globals';
 
-describe.skip('videoRouter', () => {
+describe('videoRouter', () => {
   // ESM-only imports moved inside skipped block
   let appRouter;
   let Session;

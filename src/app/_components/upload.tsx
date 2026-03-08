@@ -60,6 +60,16 @@ export default function Upload() {
       return;
     }
 
+    const videoElement = document.createElement("video");
+    videoElement.preload = "metadata";
+    let discoveredDuration: number | undefined;
+    
+    videoElement.onloadedmetadata = () => {
+      window.URL.revokeObjectURL(videoElement.src);
+      discoveredDuration = Math.round(videoElement.duration);
+    };
+    videoElement.src = URL.createObjectURL(file);
+
     setUploadProgress(0);
 
     const formData = new FormData();
@@ -84,6 +94,7 @@ export default function Upload() {
           description,
           filePath: response.filePath,
           fileSize: response.fileSize,
+          duration: discoveredDuration,
         });
       } else {
         const errorMessage = (response as UploadErrorResponse).error ?? "Unknown upload error";

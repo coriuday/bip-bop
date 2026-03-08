@@ -18,9 +18,9 @@ export const env = createEnv({
       .default("development"),
     PUSHER_APP_ID: z.string().min(1),
     PUSHER_SECRET: z.string().min(1),
-    BLOB_READ_WRITE_TOKEN: z.string().optional(),
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
+    TRPC_SIMULATE_LATENCY: z.string().optional(), // Set to "true" to enable artificial dev delay
   },
 
   /**
@@ -44,9 +44,9 @@ export const env = createEnv({
     NODE_ENV: process.env.NODE_ENV,
     PUSHER_APP_ID: process.env.PUSHER_APP_ID,
     PUSHER_SECRET: process.env.PUSHER_SECRET,
-    BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+    TRPC_SIMULATE_LATENCY: process.env.TRPC_SIMULATE_LATENCY,
     NEXT_PUBLIC_PUSHER_KEY: process.env.NEXT_PUBLIC_PUSHER_KEY,
     NEXT_PUBLIC_PUSHER_CLUSTER: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
   },

@@ -116,7 +116,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* Notifications List */}
-        {!notifications || notifications.length === 0 ? (
+        {!notifications?.items || notifications.items.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-12 text-center">
             <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-white/5">
               <Bell className="h-10 w-10 text-gray-400" />
@@ -128,7 +128,7 @@ export default function NotificationsPage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {notifications.map((notification, index) => (
+            {notifications.items.map((notification, index) => (
               <motion.div
                 key={notification.id}
                 initial={{ opacity: 0, y: 20 }}

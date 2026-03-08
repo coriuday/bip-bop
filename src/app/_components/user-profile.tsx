@@ -166,7 +166,7 @@ export default function UserProfile({ user }: UserProfileProps) {
                 src={user.image ?? undefined}
                 fallback={user.username?.charAt(0).toUpperCase() ?? user.name?.charAt(0).toUpperCase() ?? 'U'}
                 size="xl"
-                className="ring-4 ring-white/10"
+                className="ring-4 ring-[#7c3aed] shadow-[0_0_20px_rgba(124,58,237,0.6)]"
               />
             </motion.div>
 
@@ -174,7 +174,7 @@ export default function UserProfile({ user }: UserProfileProps) {
             <div className="flex-1 text-center md:text-left">
               <div className="flex flex-col md:flex-row items-center md:items-start gap-4 mb-4">
                 <div>
-                  <h1 className="text-2xl font-bold mb-1">
+                  <h1 className="text-3xl font-bold mb-1 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">
                     {user.name ?? user.username ?? 'User'}
                   </h1>
                   <p className="text-gray-400">@{user.username ?? 'username'}</p>
@@ -338,9 +338,9 @@ export default function UserProfile({ user }: UserProfileProps) {
                   description="Liked videos are private"
                   isPrivate
                 />
-              ) : likedVideos && likedVideos.length > 0 ? (
+              ) : likedVideos?.items && likedVideos.items.length > 0 ? (
                 <div className="grid grid-cols-3 gap-1">
-                  {likedVideos.map((video) => (
+                  {likedVideos.items.map((video) => (
                     <Link key={video.id} href={`/?videoId=${video.id}`}>
                       <motion.div
                         whileHover={{ scale: 1.02 }}
@@ -388,9 +388,9 @@ export default function UserProfile({ user }: UserProfileProps) {
                   description="Saved videos are private"
                   isPrivate
                 />
-              ) : savedVideos && savedVideos.length > 0 ? (
+              ) : savedVideos?.items && savedVideos.items.length > 0 ? (
                 <div className="grid grid-cols-3 gap-1">
-                  {savedVideos.map((video) => (
+                  {savedVideos.items.map((video) => (
                     <Link key={video.id} href={`/?videoId=${video.id}`}>
                       <motion.div
                         whileHover={{ scale: 1.02 }}

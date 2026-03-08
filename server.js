@@ -36,7 +36,7 @@ app.prepare().then(() => {
 
     // Attach the Aurora WebSocket Gateway to the HTTP server
     // This allows ws://localhost:3000 to connect directly to our Node process
-    createAuroraGateway(server);
+    createAuroraGateway();
 
     server
         .once("error", (err) => {

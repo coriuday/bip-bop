@@ -42,7 +42,21 @@ function MessagesContent() {
 
   // Sync server events into local array
   useEffect(() => {
-    if (events) setLocalEvents(events);
+    if (events?.items) {
+      const mappedEvents: EventEnvelope[] = events.items.map(msg => ({
+        id: msg.id,
+        type: "message:send",
+        payload: {
+          messageId: msg.id,
+          content: msg.content,
+        },
+        vectorClock: {},
+        timestamp: new Date(msg.createdAt).getTime(),
+        senderId: msg.senderId,
+        conversationId: msg.conversationId,
+      }));
+      setLocalEvents(mappedEvents);
+    }
   }, [events]);
 
   const markAsDeliveredMutation = api.message.markAsDelivered.useMutation();
@@ -209,7 +223,7 @@ function MessagesContent() {
         });
       }
 
-      if (ev.type === "message:delete" || ev.type === "message:edit") {
+      if (ev.type === "message:delete") {
         // Stub implementation, extend if feature requested
       }
 
@@ -218,7 +232,7 @@ function MessagesContent() {
         // The read event denotes everything BEFORE this point was read.
         for (const [mid, msg] of msgMap.entries()) {
           // If the message was sent by someone ELSE, and was sent BEFORE this read payload...
-          if (msg.senderId !== ev.senderId && msg.createdAt.getTime() <= payload.lastReadTimestamp) {
+          if (msg.senderId !== ev.senderId && msg.id <= payload.lastReadEventId) {
             msgMap.set(mid, { ...msg, status: "read", readAt: new Date(ev.timestamp) });
           }
         }

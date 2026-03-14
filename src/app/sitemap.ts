@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 import { db } from "~/server/db";
 
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = "https://bipbop.com";
 

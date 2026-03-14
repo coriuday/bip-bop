@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { api } from "~/trpc/react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Search, TrendingUp, Users, Video, Loader2, Hash } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "~/components/ui/avatar";

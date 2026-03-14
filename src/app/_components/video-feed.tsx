@@ -1,141 +1,148 @@
-
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useInView } from "react-intersection-observer";
-import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import { useGesture } from "@use-gesture/react";
 import { api } from "~/trpc/react";
 import VideoCard from "./video-card";
-import { ChevronUp, ChevronDown, Loader2 } from "lucide-react";
-import { Skeleton } from "~/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 
 /**
- * A client-side component that displays a TikTok-like vertical-scrolling feed of videos.
- * It fetches video data using a tRPC infinite query and renders individual video cards.
+ * TikTok-style vertical-snapping video feed.
+ * Supports: scroll-snap, keyboard arrow keys, and swipe gestures (touch + mouse).
  */
 export default function VideoFeed() {
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
-  const { data, fetchNextPage, hasNextPage, isLoading, isError } = api.video.getFeed.useInfiniteQuery(
-    {
-      limit: 5,
-    },
-    {
-      getNextPageParam: (lastPage) => lastPage.nextCursor,
-    }
-  );
+  const { data, fetchNextPage, hasNextPage, isLoading, isError } =
+    api.video.getFeed.useInfiniteQuery(
+      { limit: 5 },
+      { getNextPageParam: (lastPage) => lastPage.nextCursor }
+    );
 
-  const { ref, inView } = useInView({
-    threshold: 0.5,
-  });
+  const { ref: bottomRef, inView } = useInView({ threshold: 0.5 });
+  const videos = data?.pages.flatMap((page) => page.items) ?? [];
 
-  // Flatten video data from all pages
-  const videos = data?.pages.flatMap(page => page.items) ?? [];
-
+  // Fetch next page when bottom sentinel is visible
   useEffect(() => {
-    if (inView && hasNextPage) {
-      void fetchNextPage();
-    }
+    if (inView && hasNextPage) void fetchNextPage();
   }, [inView, hasNextPage, fetchNextPage]);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isScrolling, setIsScrolling] = useState(false);
+  // Whether we're currently animating a snap (prevents rapid double-swipes)
+  const isSnappingRef = useRef(false);
 
-  // Handle scroll navigation
-  const scrollToVideo = useCallback((index: number) => {
-    if (containerRef.current) {
-      const videoHeight = window.innerHeight;
-      containerRef.current.scrollTo({
-        top: index * videoHeight,
-        behavior: 'smooth'
-      });
-    }
-  }, []);
+  // Snap container to a specific video index
+  const snapToVideo = useCallback((index: number) => {
+    const container = containerRef.current;
+    if (!container || isSnappingRef.current) return;
+    const clamped = Math.max(0, Math.min(index, videos.length - 1));
+    if (clamped === activeVideoIndex && index === clamped) return;
 
-  // Handle wheel/scroll events
+    isSnappingRef.current = true;
+    container.scrollTo({ top: clamped * window.innerHeight, behavior: "smooth" });
+    setActiveVideoIndex(clamped);
+
+    // Release lock after animation completes
+    setTimeout(() => { isSnappingRef.current = false; }, 600);
+  }, [activeVideoIndex, videos.length]);
+
+  // ── Scroll → snap logic ─────────────────────────────────────────────────
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+    let timer: ReturnType<typeof setTimeout>;
 
-    let scrollTimeout: NodeJS.Timeout;
-    const handleScroll = () => {
-      setIsScrolling(true);
-      clearTimeout(scrollTimeout);
-
-      scrollTimeout = setTimeout(() => {
-        setIsScrolling(false);
-        const scrollTop = container.scrollTop;
-        const videoHeight = window.innerHeight;
-        const newIndex = Math.round(scrollTop / videoHeight);
-
-        if (newIndex !== activeVideoIndex && newIndex >= 0 && newIndex < videos.length) {
-          setActiveVideoIndex(newIndex);
-          scrollToVideo(newIndex);
+    const onScroll = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const idx = Math.round(container.scrollTop / window.innerHeight);
+        if (idx !== activeVideoIndex) {
+          setActiveVideoIndex(Math.max(0, Math.min(idx, videos.length - 1)));
         }
-      }, 150);
+        isSnappingRef.current = false;
+      }, 120);
     };
 
-    container.addEventListener('scroll', handleScroll);
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-      clearTimeout(scrollTimeout);
-    };
-  }, [activeVideoIndex, videos.length, scrollToVideo]);
+    container.addEventListener("scroll", onScroll, { passive: true });
+    return () => { container.removeEventListener("scroll", onScroll); clearTimeout(timer); };
+  }, [activeVideoIndex, videos.length]);
 
-  // Keyboard navigation
+  // ── Keyboard navigation ──────────────────────────────────────────────────
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowDown' && activeVideoIndex < videos.length - 1) {
-        setActiveVideoIndex(prev => prev + 1);
-        scrollToVideo(activeVideoIndex + 1);
-      } else if (e.key === 'ArrowUp' && activeVideoIndex > 0) {
-        setActiveVideoIndex(prev => prev - 1);
-        scrollToVideo(activeVideoIndex - 1);
-      }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowDown") snapToVideo(activeVideoIndex + 1);
+      if (e.key === "ArrowUp")   snapToVideo(activeVideoIndex - 1);
     };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [activeVideoIndex, snapToVideo]);
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeVideoIndex, videos.length, scrollToVideo]);
+  // ── Touch / Mouse swipe gestures ─────────────────────────────────────────
+  // We attach the gesture to the outer wrapper (not the scrollable container)
+  // and intercept fast vertical flicks to jump to the next/prev video.
+  const bind = useGesture(
+    {
+      onDrag: ({ direction: [, dy], velocity: [, vy], distance: [, dist], cancel }) => {
+        // Only act on deliberate, mostly-vertical swipes
+        const isFast = Math.abs(vy) > 0.4;
+        const isFar  = Math.abs(dist) > window.innerHeight * 0.18;
 
+        if (isFast || isFar) {
+          if (dy < 0) snapToVideo(activeVideoIndex + 1); // swipe up → next
+          else        snapToVideo(activeVideoIndex - 1); // swipe down → prev
+          cancel();
+        }
+      },
+    },
+    {
+      drag: {
+        axis: "y",
+        filterTaps: true,
+        pointer: { touch: true },
+        // Prevent browser rubber-band scroll fighting
+        eventOptions: { passive: false },
+      },
+    }
+  );
+
+  // ── Loading state ─────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="h-screen w-full bg-[#0a0a0a] overflow-hidden flex items-center justify-center relative">
-        {/* Animated Mesh Background */}
-        <div className="absolute inset-0 opacity-40 pointer-events-none">
-           <div className="absolute top-1/4 left-1/4 w-[50vw] h-[50vw] bg-[#7c3aed] rounded-full mix-blend-screen filter blur-[100px] animate-pulse-glow" />
-           <div className="absolute bottom-1/4 right-1/4 w-[50vw] h-[50vw] bg-[#ec4899] rounded-full mix-blend-screen filter blur-[100px] animate-pulse-glow" style={{ animationDelay: '1s' }} />
+      <div className="h-screen w-full overflow-hidden flex items-center justify-center bg-[#0a0a0a] relative">
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <div className="absolute top-1/4 left-1/4 w-[50vw] h-[50vw] bg-[#FF2D55] rounded-full mix-blend-screen filter blur-[120px] opacity-10 animate-pulse-glow" />
+          <div className="absolute bottom-1/4 right-1/4 w-[50vw] h-[50vw] bg-[#7B2FFF] rounded-full mix-blend-screen filter blur-[100px] opacity-10 animate-pulse-glow" style={{ animationDelay: "1s" }} />
         </div>
-        
-        <div className="relative z-10 text-center flex flex-col items-center">
-           <div className="relative mb-6">
-             <div className="absolute inset-0 bg-gradient-to-tr from-[#ec4899] to-[#7c3aed] rounded-full blur-xl opacity-60 animate-pulse-glow" />
-             <div className="relative bg-white/5 p-4 rounded-full border border-white/20 backdrop-blur-xl shadow-2xl">
-               <Loader2 className="w-8 h-8 text-white animate-spin" />
-             </div>
-           </div>
-           <p className="text-white/80 font-medium tracking-widest uppercase text-xs animate-pulse">Loading Feed</p>
+        <div className="relative z-10 flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-tr from-[#FF2D55] to-[#7B2FFF] rounded-full blur-xl opacity-50 animate-pulse-glow" />
+            <div className="relative bg-white/5 p-5 rounded-full border border-white/20 backdrop-blur-xl">
+              <Loader2 className="w-8 h-8 text-white animate-spin" />
+            </div>
+          </div>
+          <p className="text-white/60 text-xs font-medium tracking-widest uppercase">Loading Feed</p>
         </div>
       </div>
     );
   }
 
+  // ── Error state ────────────────────────────────────────────────────────────
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-black">
-        <div className="text-center">
-          <p className="text-red-500 text-xl mb-2">Oops! Something went wrong</p>
-          <p className="text-white/60 text-sm">Unable to load videos</p>
-        </div>
+      <div className="flex flex-col items-center justify-center h-screen bg-[#0a0a0a] gap-3">
+        <p className="text-[#FF2D55] text-xl font-semibold">Oops! Something went wrong</p>
+        <p className="text-white/50 text-sm">Unable to load videos. Try refreshing.</p>
       </div>
     );
   }
 
+  // ── Empty state ────────────────────────────────────────────────────────────
   if (videos.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
         <div className="text-center px-6 max-w-2xl">
-          {/* Animated Icon */}
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -143,134 +150,54 @@ export default function VideoFeed() {
             className="mb-8 inline-block"
           >
             <div className="relative">
-              {/* Glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-cyan-400 rounded-3xl blur-3xl opacity-20 animate-pulse-glow" />
-
-              {/* Icon container */}
-              <div className="relative bg-gradient-to-br from-pink-500/10 to-cyan-400/10 p-12 rounded-3xl border border-white/10">
-                <svg
-                  className="w-24 h-24 text-white/80"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                  />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#FF2D55] to-[#00D4FF] rounded-3xl blur-3xl opacity-20 animate-pulse-glow" />
+              <div className="relative bg-gradient-to-br from-[#FF2D55]/10 to-[#00D4FF]/10 p-12 rounded-3xl border border-white/10">
+                <svg className="w-24 h-24 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </div>
             </div>
           </motion.div>
 
-          {/* Text Content */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              No videos yet
-            </h1>
-            <p className="text-lg text-gray-400 mb-10 max-w-md mx-auto">
-              Be the first to share your creativity with the world. Upload your first video and start your journey!
+          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">No videos yet</h1>
+            <p className="text-lg text-white/50 mb-10 max-w-md mx-auto">
+              Be the first to share your creativity. Upload your first video and start your journey!
             </p>
-
-            {/* CTA Button */}
-            <Link href="/upload">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-pink-500 to-cyan-400 rounded-xl font-semibold text-white text-lg shadow-2xl shadow-pink-500/20 hover:shadow-pink-500/40 transition-all"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                <span>Upload Your First Video</span>
-                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </motion.button>
+            <Link
+              href="/upload"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#FF2D55] to-[#7B2FFF] rounded-xl font-semibold text-white text-lg shadow-2xl shadow-[#FF2D55]/20 hover:shadow-[#FF2D55]/40 transition-all"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+              Upload Your First Video
             </Link>
-          </motion.div>
-
-          {/* Feature Cards */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-            className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6"
-          >
-            {[
-              {
-                icon: (
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                ),
-                title: "Create",
-                description: "Share your unique perspective"
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                ),
-                title: "Connect",
-                description: "Build your community"
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                ),
-                title: "Inspire",
-                description: "Make an impact"
-              }
-            ].map((feature, i) => (
-              <motion.div
-                key={feature.title}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.5 + i * 0.1, duration: 0.5 }}
-                className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500/20 to-cyan-400/20 flex items-center justify-center mb-4 text-white group-hover:scale-110 transition-transform">
-                  {feature.icon}
-                </div>
-                <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                <p className="text-sm text-gray-400">{feature.description}</p>
-              </motion.div>
-            ))}
           </motion.div>
         </div>
       </div>
     );
   }
 
+  // ── Feed ───────────────────────────────────────────────────────────────────
   return (
-    <div className="relative h-screen w-full bg-black overflow-hidden">
-      {/* Video container with snap scrolling */}
+    <div
+      className="relative h-screen w-full bg-black overflow-hidden touch-none"
+      {...bind()}
+    >
+      {/* Scrollable snap container */}
       <div
         ref={containerRef}
         className="h-full w-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
+        style={{ touchAction: "none" }} // gesture handler takes over
       >
         {videos.map((video, index) => (
-          <div
-            key={video.id}
-            className="h-screen w-full snap-start snap-always"
-          >
+          <div key={video.id} className="h-screen w-full snap-start snap-always">
             <VideoCard
               id={video.id}
               videoUrl={video.filePath}
               thumbnailUrl={video.thumbnailUrl ?? undefined}
-              username={video.user.username ?? video.user.name ?? 'Anonymous'}
+              username={video.user.username ?? video.user.name ?? "Anonymous"}
               userId={video.user.id}
-              description={video.description ?? video.title ?? ''}
+              description={video.description ?? video.title ?? ""}
               likesCount={video._count.likes}
               commentsCount={video._count.comments}
               viewsCount={video.viewCount}
@@ -281,15 +208,37 @@ export default function VideoFeed() {
           </div>
         ))}
 
-        {/* Loading more indicator */}
+        {/* Load-more sentinel */}
         {hasNextPage && (
-          <div ref={ref} className="h-20 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 text-white/50 animate-spin" />
+          <div ref={bottomRef} className="h-20 flex items-center justify-center">
+            <Loader2 className="w-5 h-5 text-white/30 animate-spin" />
           </div>
         )}
       </div>
 
-
+      {/* Swipe hint on first visit */}
+      <AnimatePresence>
+        {activeVideoIndex === 0 && videos.length > 1 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ delay: 2, duration: 0.5 }}
+            className="pointer-events-none absolute bottom-28 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-1"
+            aria-hidden="true"
+          >
+            <motion.div
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 1.2, repeat: 3, ease: "easeInOut" }}
+            >
+              <svg className="w-5 h-5 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+            </motion.div>
+            <p className="text-white/40 text-xs tracking-wide">Swipe up</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

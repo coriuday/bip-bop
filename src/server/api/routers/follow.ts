@@ -52,11 +52,6 @@ export const followRouter = createTRPCRouter({
         });
 
         // Create notification for the followed user
-        const follower = await ctx.db.user.findUnique({
-          where: { id: currentUserId },
-          select: { name: true, username: true },
-        });
-
         await ctx.db.notification.create({
           data: {
             type: NotificationType.follow,

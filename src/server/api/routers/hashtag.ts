@@ -54,7 +54,6 @@ export const hashtagRouter = createTRPCRouter({
         )
         .query(async ({ ctx, input }) => {
             const tag = input.tag.toLowerCase().replace(/^#/, "");
-            const userId = ctx.session?.user.id;
 
             const hashtag = await ctx.db.hashtag.findUnique({ where: { name: tag } });
             if (!hashtag) return { items: [], nextCursor: undefined, tag };

@@ -109,4 +109,34 @@ export const studioRouter = createTRPCRouter({
 
             return Object.entries(grouped).map(([date, count]) => ({ date, count }));
         }),
+
+    /**
+     * 7-day / 30-day view trends for the entire channel.
+     */
+    getChannelTrend: protectedProcedure
+        .input(z.object({ days: z.number().min(1).max(30).default(7) }))
+        .query(async ({ ctx, input }) => {
+            const userId = ctx.session.user.id;
+            const since = new Date(Date.now() - input.days * 24 * 60 * 60 * 1000);
+
+            const views = await ctx.db.videoView.findMany({
+                where: { video: { userId }, viewedAt: { gte: since } },
+                select: { viewedAt: true },
+                orderBy: { viewedAt: "asc" },
+            });
+
+            // Group by date string
+            const grouped: Record<string, number> = {};
+            for (let d = 0; d < input.days; d++) {
+                const date = new Date(since.getTime() + d * 24 * 60 * 60 * 1000);
+                const key = date.toISOString().slice(0, 10);
+                grouped[key] = 0;
+            }
+            for (const v of views) {
+                const key = v.viewedAt.toISOString().slice(0, 10);
+                if (key in grouped) grouped[key]! += 1;
+            }
+
+            return Object.entries(grouped).map(([date, count]) => ({ date, count }));
+        }),
 });

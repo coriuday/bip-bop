@@ -67,6 +67,31 @@ export const userRouter = createTRPCRouter({
       return user;
     }),
 
+  /**
+   * Search users by username prefix/substring — used by the DM search bar.
+   */
+  searchByUsername: publicProcedure
+    .input(z.object({ query: z.string().min(1).max(50) }))
+    .query(async ({ ctx, input }) => {
+      const users = await ctx.db.user.findMany({
+        where: {
+          OR: [
+            { username: { contains: input.query, mode: "insensitive" } },
+            { name: { contains: input.query, mode: "insensitive" } },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          image: true,
+        },
+        take: 8,
+        orderBy: { username: "asc" },
+      });
+      return users;
+    }),
+
   getFollowers: publicProcedure
     .input(z.object({ userId: z.string() }))
     .query(async ({ ctx, input }) => {

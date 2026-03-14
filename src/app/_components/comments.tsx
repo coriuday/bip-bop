@@ -37,7 +37,8 @@ export default function Comments({ videoId, initialComments = [], onCommentAdded
   const { data: fetchedComments, isLoading } = api.comment.getByVideoId.useQuery(
     { videoId },
     {
-      enabled: initialComments.length === 0,
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
     }
   );
 

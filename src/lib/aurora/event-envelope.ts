@@ -6,6 +6,8 @@ export const eventTypeSchema = z.enum([
   "message:send",
   "message:read",
   "message:delete",
+  "message:reaction",
+  "message:edit",
   "conversation:typing"
 ]);
 
@@ -16,11 +18,11 @@ export const eventEnvelopeSchema = z.object({
   senderId: z.string().min(1),
   timestamp: z.number().int().nonnegative(),
   vectorClock: z.record(z.string(), z.number().int().nonnegative()),
-  payload: z.any(),
+  payload: z.unknown(),
 });
 
 export type EventType = z.infer<typeof eventTypeSchema>;
-export type EventEnvelope<T = any> = Omit<z.infer<typeof eventEnvelopeSchema>, 'payload'> & { payload: T };
+export type EventEnvelope<T = unknown> = Omit<z.infer<typeof eventEnvelopeSchema>, 'payload'> & { payload: T };
 
 export const parseEventEnvelope = (value: unknown) =>
   eventEnvelopeSchema.parse(value) as EventEnvelope;

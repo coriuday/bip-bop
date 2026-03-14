@@ -59,12 +59,12 @@ describe("reconcileEventPair", () => {
       id: "f63b16f6-a0d8-4674-a786-31326faf7f98",
       vectorClock: { a: 2, b: 0 },
       timestamp: 100,
-    });
+    } as Partial<EventEnvelope>);
     const right = buildEvent({
       id: "69144f57-5e51-43e7-b7cb-f9f4f1f91311",
       vectorClock: { a: 1, b: 1 },
       timestamp: 200,
-    });
+    } as Partial<EventEnvelope>);
 
     const outcome = reconcileEventPair(left, right);
 
@@ -78,12 +78,12 @@ describe("reconcileEventPair", () => {
       id: "0f3b16f6-a0d8-4674-a786-31326faf7f98",
       vectorClock: { a: 2, b: 1 },
       timestamp: 100,
-    });
+    } as Partial<EventEnvelope>);
     const right = buildEvent({
       id: "9f144f57-5e51-43e7-b7cb-f9f4f1f91311",
       vectorClock: { a: 2, b: 1 },
       timestamp: 200,
-    });
+    } as Partial<EventEnvelope>);
 
     const forward = reconcileEventPair(left, right);
     const reverse = reconcileEventPair(right, left);

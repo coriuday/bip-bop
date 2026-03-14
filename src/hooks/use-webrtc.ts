@@ -70,6 +70,7 @@ export function useWebRTC({ conversationId, userId, isVideo = true }: UseWebRTCP
             };
         }
         return peerConnection.current;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [conversationId, localStream, signalMutation]);
 
     // Handle incoming signaling events via Pusher
@@ -79,8 +80,7 @@ export function useWebRTC({ conversationId, userId, isVideo = true }: UseWebRTCP
         const pusher = getPusherClient();
         const channel = pusher.subscribe(conversationChannel(conversationId));
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        channel.bind(PUSHER_EVENTS.CALL_SIGNALING, async (data: any) => {
+        channel.bind(PUSHER_EVENTS.CALL_SIGNALING, async (data: { senderId: string, signalType: string, sdp: string, candidate: string, sdpMid: string, sdpMLineIndex: number }) => {
             // Ignore our own signals
             if (data.senderId === userId) return;
 
@@ -125,7 +125,8 @@ export function useWebRTC({ conversationId, userId, isVideo = true }: UseWebRTCP
             pusher.unsubscribe(conversationChannel(conversationId));
             channel.unbind(PUSHER_EVENTS.CALL_SIGNALING);
         };
-    }, [conversationId, userId, getPeerConnection, signalMutation]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [conversationId, userId, signalMutation]);
 
     const startMedia = async () => {
         try {

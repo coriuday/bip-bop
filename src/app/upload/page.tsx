@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, Video, Edit3, Music, Type, Sparkles, Check } from "lucide-react";
+import { Upload, Edit3, Check } from "lucide-react";
 import VideoUploader from "~/app/_components/video-uploader";
 import VideoEditor from "~/app/_components/video-editor";
 

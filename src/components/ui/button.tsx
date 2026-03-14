@@ -3,8 +3,8 @@ import { motion, type HTMLMotionProps } from "framer-motion";
 import { cn } from "~/lib/utils";
 
 interface ButtonProps extends HTMLMotionProps<"button"> {
-  variant?: "primary" | "secondary" | "ghost" | "outline";
-  size?: "sm" | "md" | "lg";
+  variant?: "primary" | "secondary" | "ghost" | "outline" | "destructive";
+  size?: "sm" | "md" | "lg" | "icon";
   isLoading?: boolean;
 }
 
@@ -13,12 +13,14 @@ const variants = {
   secondary: "bg-white/10 hover:bg-white/20 text-white font-medium backdrop-blur-sm",
   ghost: "hover:bg-white/10 text-white",
   outline: "border border-white/20 hover:bg-white/10 text-white backdrop-blur-sm",
+  destructive: "bg-red-600 hover:bg-red-700 text-white font-semibold shadow-lg shadow-red-900/30",
 };
 
 const sizes = {
   sm: "px-3 py-1.5 text-xs rounded-md",
   md: "px-6 py-2 text-sm rounded-lg",
   lg: "px-8 py-3 text-base rounded-xl",
+  icon: "h-10 w-10 rounded-full p-0",
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(

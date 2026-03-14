@@ -2,10 +2,11 @@
 
 import { api } from "~/trpc/react";
 import { motion } from "framer-motion";
-import { Hash, TrendingUp, Play, Heart } from "lucide-react";
+import { Hash, Play, Heart } from "lucide-react";
 import Link from "next/link";
 import { formatNumber } from "~/lib/utils";
 import { Avatar } from "~/components/ui/avatar";
+import Image from "next/image";
 
 import React from "react";
 
@@ -78,11 +79,12 @@ function HashtagContent({ tag }: { tag: string }) {
                                 <Link href={`/?videoId=${video.id}`}>
                                     <div className="group relative aspect-[9/16] cursor-pointer overflow-hidden rounded-xl bg-white/5">
                                         {video.thumbnailUrl ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <img
+                                            <Image
                                                 src={video.thumbnailUrl}
                                                 alt={video.title ?? "Video"}
-                                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                                fill
+                                                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                                                sizes="(max-width: 768px) 33vw, 20vw"
                                             />
                                         ) : (
                                             <video

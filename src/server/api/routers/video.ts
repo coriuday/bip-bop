@@ -64,6 +64,71 @@ export const videoRouter = createTRPCRouter({
     }),
 
   /**
+   * Creates a Duet (side-by-side remix) of an existing video.
+   */
+  createDuet: protectedProcedure
+    .input(z.object({
+      originalVideoId: z.number(),
+      title: z.string().min(1).max(100),
+      description: z.string().max(500).optional(),
+      filePath: z.string().min(1),
+      fileSize: z.number().min(1),
+      duration: z.number().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      checkRateLimit(`video.create:${userId}`, 10, 60 * 60_000);
+
+      // Check original video exists
+      const original = await ctx.db.video.findUnique({ where: { id: input.originalVideoId } });
+      if (!original) throw new TRPCError({ code: "NOT_FOUND", message: "Original video not found" });
+
+      return ctx.db.video.create({
+        data: {
+          title: input.title,
+          description: input.description,
+          filePath: input.filePath,
+          fileSize: input.fileSize,
+          duration: input.duration,
+          userId,
+          duetOfId: input.originalVideoId,
+        },
+      });
+    }),
+
+  /**
+   * Creates a Stitch (clip + extend) of an existing video.
+   */
+  createStitch: protectedProcedure
+    .input(z.object({
+      originalVideoId: z.number(),
+      title: z.string().min(1).max(100),
+      description: z.string().max(500).optional(),
+      filePath: z.string().min(1),
+      fileSize: z.number().min(1),
+      duration: z.number().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      checkRateLimit(`video.create:${userId}`, 10, 60 * 60_000);
+
+      const original = await ctx.db.video.findUnique({ where: { id: input.originalVideoId } });
+      if (!original) throw new TRPCError({ code: "NOT_FOUND", message: "Original video not found" });
+
+      return ctx.db.video.create({
+        data: {
+          title: input.title,
+          description: input.description,
+          filePath: input.filePath,
+          fileSize: input.fileSize,
+          duration: input.duration,
+          userId,
+          stitchOfId: input.originalVideoId,
+        },
+      });
+    }),
+
+  /**
    * Fetches a paginated feed of videos.
    * Publicly accessible.
    * Includes user information and like counts.
@@ -381,6 +446,30 @@ export const videoRouter = createTRPCRouter({
     }),
 
   /**
+   * Edit a video's title and description
+   */
+  editVideo: protectedProcedure
+    .input(z.object({
+      videoId: z.number(),
+      title: z.string().min(1).max(100),
+      description: z.string().max(500).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const video = await ctx.db.video.findUnique({ where: { id: input.videoId } });
+      if (!video) throw new TRPCError({ code: "NOT_FOUND", message: "Video not found" });
+      if (video.userId !== ctx.session.user.id) throw new TRPCError({ code: "UNAUTHORIZED" });
+      
+      const updated = await ctx.db.video.update({
+        where: { id: input.videoId },
+        data: {
+          title: input.title,
+          description: input.description,
+        },
+      });
+      return updated;
+    }),
+
+  /**
    * Delete a video owned by the authenticated user
    */
   deleteVideo: protectedProcedure
@@ -392,5 +481,134 @@ export const videoRouter = createTRPCRouter({
       
       await ctx.db.video.delete({ where: { id: input.videoId } });
       return { success: true };
+    }),
+
+  /**
+   * Personalized "For You" feed.
+   * Scores videos by: recency, engagement velocity, hashtag affinity (based on liked/bookmarked videos),
+   * and creator affinity (following). Excludes already-watched videos for logged-in users.
+   */
+  getForYouFeed: publicProcedure
+    .input(z.object({
+      limit: z.number().min(1).max(30).default(10),
+      cursor: z.number().optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const { limit, cursor } = input;
+      const userId = ctx.session?.user.id;
+
+      // ── 1. Gather user interest signals ───────────────────────────────────
+      let followingIds: string[] = [];
+      let interestHashtagIds: number[] = [];
+      let watchedVideoIds: number[] = [];
+
+      if (userId) {
+        const [follows, likedHashtags, bookmarkedHashtags, recentViews] = await Promise.all([
+          // Who the user follows
+          ctx.db.follow.findMany({
+            where: { followerId: userId },
+            select: { followingId: true },
+          }),
+          // Hashtags from liked videos
+          ctx.db.like.findMany({
+            where: { userId },
+            select: { video: { select: { hashtags: { select: { hashtagId: true } } } } },
+            orderBy: { createdAt: "desc" },
+            take: 30,
+          }),
+          // Hashtags from bookmarked videos
+          ctx.db.bookmark.findMany({
+            where: { userId },
+            select: { video: { select: { hashtags: { select: { hashtagId: true } } } } },
+            orderBy: { createdAt: "desc" },
+            take: 20,
+          }),
+          // Videos watched in the last 3 days
+          ctx.db.videoView.findMany({
+            where: {
+              userId,
+              viewedAt: { gte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
+            },
+            select: { videoId: true },
+          }),
+        ]);
+
+        followingIds = follows.map((f) => f.followingId);
+        interestHashtagIds = [
+          ...likedHashtags.flatMap((l) => l.video.hashtags.map((h) => h.hashtagId)),
+          ...bookmarkedHashtags.flatMap((b) => b.video.hashtags.map((h) => h.hashtagId)),
+        ];
+        watchedVideoIds = recentViews.map((v) => v.videoId);
+      }
+
+      // ── 2. Fetch candidate videos ──────────────────────────────────────────
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+      const candidates = await ctx.db.video.findMany({
+        where: {
+          ...(cursor ? { id: { lt: cursor } } : {}),
+          // Exclude recently watched
+          id: watchedVideoIds.length > 0 ? { notIn: watchedVideoIds } : undefined,
+          // Pick recent videos for freshness
+          createdAt: { gte: sevenDaysAgo },
+        },
+        include: {
+          user: { select: { id: true, name: true, username: true, image: true } },
+          likes: userId ? { where: { userId } } : false,
+          bookmarks: userId ? { where: { userId } } : false,
+          hashtags: { select: { hashtagId: true } },
+          _count: { select: { likes: true, comments: true, bookmarks: true, views: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: Math.min(limit * 5, 200), // fetch wider set to rank
+      });
+
+      // ── 3. Score each candidate ────────────────────────────────────────────
+      const now = Date.now();
+
+      const scored = candidates.map((video) => {
+        const ageHours = (now - video.createdAt.getTime()) / 3_600_000;
+
+        // Engagement velocity (likes + comments over age in hours, higher = better)
+        const engagementScore =
+          (video._count.likes * 3 + video._count.comments * 2 + video._count.bookmarks) /
+          Math.max(ageHours, 1);
+
+        // Creator affinity: user follows this creator
+        const creatorBonus = followingIds.includes(video.userId) ? 20 : 0;
+
+        // Hashtag affinity: intersection with user's interest hashtags
+        const hashtagOverlap = video.hashtags.filter((h) =>
+          interestHashtagIds.includes(h.hashtagId),
+        ).length;
+        const hashtagBonus = hashtagOverlap * 5;
+
+        // Recency decay (newer videos get a boost)
+        const recencyBonus = Math.max(0, 10 - ageHours / 6);
+
+        return {
+          ...video,
+          _score: engagementScore + creatorBonus + hashtagBonus + recencyBonus,
+        };
+      });
+
+      // ── 4. Sort by score and take `limit` items ────────────────────────────
+      scored.sort((a, b) => b._score - a._score);
+      const page = scored.slice(0, limit + 1);
+
+      let nextCursor: typeof cursor | undefined;
+      if (page.length > limit) {
+        const nextItem = page.pop();
+        nextCursor = nextItem?.id;
+      }
+
+      return {
+        items: page.map(({ _score, ...video }) => ({
+          ...video,
+          userHasLiked: Array.isArray(video.likes) ? video.likes.length > 0 : false,
+          userHasBookmarked: Array.isArray(video.bookmarks) ? video.bookmarks.length > 0 : false,
+        })),
+        nextCursor,
+      };
     }),
 });

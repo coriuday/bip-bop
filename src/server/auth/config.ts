@@ -100,8 +100,9 @@ export const authConfig = {
       }
       // Handle session updates
       if (trigger === "update" && session) {
-        token.username = session.user?.username ?? token.username;
-        token.bio = session.user?.bio ?? token.bio;
+        const updateSession = session as { user?: { username?: string; bio?: string } };
+        token.username = updateSession.user?.username ?? token.username;
+        token.bio = updateSession.user?.bio ?? token.bio;
       }
       return token;
     },

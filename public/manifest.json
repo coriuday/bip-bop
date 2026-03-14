@@ -1,0 +1,42 @@
+{
+  "name": "BipBop",
+  "short_name": "BipBop",
+  "description": "Short-form video platform. Create. Connect. Go Viral.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#FF2D55",
+  "orientation": "portrait-primary",
+  "lang": "en",
+  "categories": ["social", "entertainment", "video"],
+  "icons": [
+    {
+      "src": "/bipbop-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Upload Video",
+      "short_name": "Upload",
+      "description": "Upload a new short video",
+      "url": "/upload",
+      "icons": [{ "src": "/bipbop-logo.svg", "sizes": "any" }]
+    },
+    {
+      "name": "My Profile",
+      "short_name": "Profile",
+      "description": "View your profile",
+      "url": "/settings",
+      "icons": [{ "src": "/bipbop-logo.svg", "sizes": "any" }]
+    }
+  ]
+}

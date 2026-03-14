@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Settings, Share2, MoreHorizontal, Grid, Heart, Bookmark, Lock } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
@@ -31,6 +32,7 @@ export interface UserProfileProps {
 
 export default function UserProfile({ user }: UserProfileProps) {
   const { data: session } = useSession();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'videos' | 'liked' | 'saved'>('videos');
   const isOwnProfile = session?.user?.id === user.id;
   const utils = api.useUtils();
@@ -85,8 +87,7 @@ export default function UserProfile({ user }: UserProfileProps) {
       toast.error("Please sign in to send messages");
       return;
     }
-    // Navigate to messages with recipient ID
-    window.location.href = `/messages?recipientId=${user.id}`;
+    router.push(`/messages?recipientId=${user.id}`);
   };
 
   const handleShare = async () => {
@@ -142,11 +143,21 @@ export default function UserProfile({ user }: UserProfileProps) {
   ];
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* Profile Header */}
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-6">
+    <main className="min-h-screen bg-[#0a0a0a] text-white pb-24 md:pb-0">
+      {/* Cover gradient banner */}
+      <div
+        aria-hidden="true"
+        className="h-36 w-full bg-gradient-to-br from-[#FF2D55]/30 via-[#7B2FFF]/20 to-[#00D4FF]/20 relative overflow-hidden"
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
+        <div className="absolute top-4 left-8 h-32 w-32 rounded-full bg-[#FF2D55] opacity-20 blur-3xl" />
+        <div className="absolute bottom-2 right-16 h-24 w-24 rounded-full bg-[#7B2FFF] opacity-20 blur-3xl" />
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 pb-8">
+        {/* Profile Header — avatar overlaps the cover */}
+        <div className="mb-8 -mt-12">
+          <div className="flex flex-col md:flex-row items-center md:items-end gap-6 mb-6">
             {/* Avatar */}
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -157,7 +168,7 @@ export default function UserProfile({ user }: UserProfileProps) {
                 src={user.image ?? undefined}
                 fallback={user.username?.charAt(0).toUpperCase() ?? user.name?.charAt(0).toUpperCase() ?? 'U'}
                 size="xl"
-                className="ring-4 ring-[#7c3aed] shadow-[0_0_20px_rgba(124,58,237,0.6)]"
+                className="ring-4 ring-[#FF2D55] shadow-[0_0_28px_rgba(255,45,85,0.5)] border-4 border-[#0a0a0a]"
               />
             </motion.div>
 
@@ -280,12 +291,12 @@ export default function UserProfile({ user }: UserProfileProps) {
           {activeTab === 'videos' && (
             <div>
               {user.videos && user.videos.length > 0 ? (
-                <div className="grid grid-cols-3 gap-1">
+                <div className="grid grid-cols-3 gap-0.5 sm:gap-1">
                   {user.videos.map((video) => (
                     <Link key={video.id} href={`/?videoId=${video.id}`}>
                       <motion.div
-                        whileHover={{ scale: 1.02 }}
-                        className="relative aspect-[9/16] bg-white/5 rounded-lg overflow-hidden cursor-pointer group"
+                        whileHover={{ scale: 1.01 }}
+                        className="relative aspect-[9/16] bg-white/5 rounded-md overflow-hidden cursor-pointer group"
                       >
                         <video
                           src={video.filePath}

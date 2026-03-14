@@ -145,7 +145,7 @@ export function sanitizeText(text: string): string {
  */
 export function isSpamming(
   recentUploads: Date[],
-  maxUploadsPerHour: number = 10
+  maxUploadsPerHour = 10
 ): boolean {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
   const recentCount = recentUploads.filter((date) => date > oneHourAgo).length;

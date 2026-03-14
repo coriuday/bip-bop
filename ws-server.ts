@@ -1,5 +1,5 @@
 import { WebSocketServer, type WebSocket, type RawData } from "ws";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type Prisma } from "@prisma/client";
 import PusherServer from "pusher";
 
 const port = 3001;
@@ -20,7 +20,8 @@ console.log(`> Aurora WS attached at ws://localhost:${port}`);
 wss.on("connection", (ws: WebSocket) => {
   console.log("WS client connected");
 
-  ws.on("message", async (raw: RawData) => {
+  ws.on("message", (raw: RawData) => {
+    void (async () => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-base-to-string
       const event = JSON.parse(raw.toString()) as {
@@ -37,9 +38,8 @@ wss.on("connection", (ws: WebSocket) => {
         data: {
           id: event.id ?? crypto.randomUUID(),
           type: event.type,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-          payload: event.payload as any,
-          vectorClock: event.vectorClock ?? {},
+          payload: event.payload as Prisma.InputJsonValue,
+          vectorClock: (event.vectorClock ?? {}) as Prisma.InputJsonValue,
           timestamp: BigInt(Date.now()),
           senderId: event.senderId,
           conversationId: event.conversationId,
@@ -57,6 +57,7 @@ wss.on("connection", (ws: WebSocket) => {
     } catch (e) {
       console.error("[WS] Error processing message:", e);
     }
+    })().catch((err) => console.error("[WS] Unhandled error:", err));
   });
 
   ws.on("close", () => console.log("WS client disconnected"));

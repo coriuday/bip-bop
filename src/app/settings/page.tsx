@@ -604,7 +604,7 @@ function SecuritySettings() {
             </button>
           </div>
           {confirmPassword && newPassword !== confirmPassword && (
-            <p className="mt-1 text-xs text-red-500">Passwords don't match</p>
+            <p className="mt-1 text-xs text-red-500">Passwords don&apos;t match</p>
           )}
         </div>
       </div>
@@ -661,7 +661,7 @@ function SecuritySettings() {
           <div>
             <h3 className="text-lg font-semibold">Active Sessions</h3>
             <p className="mt-1 text-sm text-gray-400">
-              Manage devices where you're currently logged in
+              Manage devices where you&apos;re currently logged in
             </p>
           </div>
           <Button variant="secondary" onClick={handleEndAllSessions}>
@@ -867,10 +867,10 @@ function PreferenceSettings() {
             className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white focus:ring-2 focus:ring-pink-500 focus:outline-none"
             aria-label="Video quality"
           >
-            <option value="auto">Auto (Recommended)</option>
-            <option value="1080p">1080p (High)</option>
-            <option value="720p">720p (Medium)</option>
-            <option value="480p">480p (Low)</option>
+            <option value="auto" className="bg-[#1a1a1a]">Auto (Recommended)</option>
+            <option value="1080p" className="bg-[#1a1a1a]">1080p (High)</option>
+            <option value="720p" className="bg-[#1a1a1a]">720p (Medium)</option>
+            <option value="480p" className="bg-[#1a1a1a]">480p (Low)</option>
           </select>
         </div>
       </div>

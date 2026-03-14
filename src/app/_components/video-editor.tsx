@@ -7,11 +7,9 @@ import {
   Pause,
   Volume2,
   VolumeX,
-  Scissors,
   Type,
   Music,
   Sparkles,
-  Palette,
   ArrowLeft,
   ArrowRight,
   Filter,
@@ -48,6 +46,13 @@ export default function VideoEditor({
   const [selectedTab, setSelectedTab] = useState<
     "text" | "music" | "effects" | "filters"
   >("text");
+
+  // Music track state
+  const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
+  const [isPreviewingTrack, setIsPreviewingTrack] = useState(false);
+
+  // Effect preset state
+  const [selectedEffect, setSelectedEffect] = useState<string | null>(null);
 
   // API mutation
   const createVideoMutation = api.video.create.useMutation({
@@ -116,6 +121,34 @@ export default function VideoEditor({
     { id: "filters", label: "Filters", icon: Filter },
   ];
 
+  // Music library data
+  const musicTracks = [
+    { id: "track_1", title: "Neon Pulse", artist: "Electronic Vibes", duration: "2:34", genre: "Electronic" },
+    { id: "track_2", title: "Chill Sunset", artist: "Lo-Fi Dreams", duration: "3:12", genre: "Lo-Fi" },
+    { id: "track_3", title: "City Lights", artist: "Urban Beats", duration: "2:48", genre: "Hip-Hop" },
+    { id: "track_4", title: "Acoustic Morning", artist: "Folk Tales", duration: "3:05", genre: "Acoustic" },
+    { id: "track_5", title: "Summer Pop", artist: "Sunshine Band", duration: "2:21", genre: "Pop" },
+    { id: "track_6", title: "Dark Wave", artist: "Synth Underground", duration: "3:47", genre: "Synth" },
+  ];
+
+  // Effects presets (CSS filter combos)
+  const effectPresets = [
+    { id: "none",       label: "Original",   filter: "none" },
+    { id: "vintage",   label: "Vintage",     filter: "sepia(0.6) contrast(1.1) brightness(0.9)" },
+    { id: "vaporwave", label: "Vaporwave",   filter: "hue-rotate(200deg) saturate(1.8) brightness(1.1)" },
+    { id: "cinematic", label: "Cinematic",   filter: "contrast(1.3) saturate(0.8) brightness(0.9)" },
+    { id: "noir",      label: "Noir",        filter: "grayscale(1) contrast(1.4) brightness(0.85)" },
+    { id: "golden",    label: "Golden Hour", filter: "sepia(0.3) saturate(1.5) brightness(1.1) hue-rotate(-10deg)" },
+    { id: "cool",      label: "Cool Tone",   filter: "hue-rotate(180deg) saturate(1.2) brightness(1.05)" },
+    { id: "warm",      label: "Warm",        filter: "sepia(0.2) saturate(1.4) brightness(1.05) hue-rotate(10deg)" },
+    { id: "dream",     label: "Dream",       filter: "blur(0.5px) brightness(1.1) saturate(1.3) hue-rotate(10deg)" },
+  ];
+
+  // Derive the active video filter — effect preset overrides the manual sliders
+  const activeVideoFilter = selectedEffect && selectedEffect !== "none"
+    ? effectPresets.find((e) => e.id === selectedEffect)?.filter ?? `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`
+    : `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
+
   return (
     <div className="mx-auto max-w-7xl">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -133,7 +166,7 @@ export default function VideoEditor({
                   onLoadedMetadata={handleLoadedMetadata}
                   muted={isMuted}
                   style={{
-                    filter: `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`,
+                    filter: activeVideoFilter,
                   }}
                 />
               )}
@@ -322,24 +355,108 @@ export default function VideoEditor({
               )}
 
               {selectedTab === "music" && (
-                <div className="py-8 text-center">
-                  <Music className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-                  <p className="mb-4 text-gray-400">Add music to your video</p>
-                  <button className="rounded-lg bg-white/10 px-6 py-2 transition-colors hover:bg-white/20">
-                    Browse Music Library
-                  </button>
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-400 mb-3">Choose a track for your video (royalty-free)</p>
+                  {musicTracks.map((track) => (
+                    <button
+                      key={track.id}
+                      onClick={() => {
+                        setSelectedTrack(selectedTrack === track.id ? null : track.id);
+                        setIsPreviewingTrack(false);
+                      }}
+                      className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
+                        selectedTrack === track.id
+                          ? "bg-gradient-to-r from-pink-500/20 to-cyan-400/10 border border-pink-500/40"
+                          : "bg-white/5 hover:bg-white/10 border border-transparent"
+                      }`}
+                    >
+                      {/* Play icon area */}
+                      <div
+                        className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                          selectedTrack === track.id ? "bg-pink-500" : "bg-white/10"
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (selectedTrack === track.id) setIsPreviewingTrack((p) => !p);
+                          else { setSelectedTrack(track.id); setIsPreviewingTrack(true); }
+                        }}
+                      >
+                        {selectedTrack === track.id && isPreviewingTrack ? (
+                          <Pause className="h-4 w-4 text-white" />
+                        ) : (
+                          <Play className="ml-0.5 h-4 w-4 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{track.title}</p>
+                        <p className="text-xs text-gray-400 truncate">{track.artist}</p>
+                      </div>
+                      <div className="flex-shrink-0 text-right">
+                        <span className="text-xs text-gray-500 block">{track.duration}</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-white/10 text-gray-400 mt-0.5 inline-block">{track.genre}</span>
+                      </div>
+                    </button>
+                  ))}
+                  {selectedTrack && (
+                    <p className="text-xs text-pink-400 text-center pt-1">
+                      ✓ &quot;{musicTracks.find((t) => t.id === selectedTrack)?.title}&quot; will be added
+                    </p>
+                  )}
                 </div>
               )}
 
               {selectedTab === "effects" && (
-                <div className="py-8 text-center">
-                  <Sparkles className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-                  <p className="mb-4 text-gray-400">
-                    Apply effects to your video
-                  </p>
-                  <button className="rounded-lg bg-white/10 px-6 py-2 transition-colors hover:bg-white/20">
-                    Browse Effects
-                  </button>
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-400 mb-3">Apply a visual effect preset (previewed live)</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {effectPresets.map((preset) => (
+                      <button
+                        key={preset.id}
+                        onClick={() => {
+                          setSelectedEffect(preset.id === selectedEffect ? null : preset.id);
+                          // Reset sliders when an effect is applied
+                          if (preset.id !== selectedEffect) {
+                            setBrightness(100);
+                            setContrast(100);
+                            setSaturation(100);
+                          }
+                        }}
+                        className={`relative aspect-square rounded-xl overflow-hidden transition-all ${
+                          selectedEffect === preset.id
+                            ? "ring-2 ring-pink-500 scale-95"
+                            : "hover:scale-95"
+                        }`}
+                      >
+                        {videoUrl ? (
+                          <video
+                            src={videoUrl}
+                            className="w-full h-full object-cover"
+                            muted
+                            playsInline
+                            style={{ filter: preset.filter }}
+                          />
+                        ) : (
+                          <div
+                            className="w-full h-full"
+                            style={{
+                              background: `linear-gradient(135deg, #FF2D55, #7B2FFF, #00D4FF)`,
+                              filter: preset.filter,
+                            }}
+                          />
+                        )}
+                        <div className="absolute inset-x-0 bottom-0 bg-black/60 py-1">
+                          <p className="text-xs font-medium text-white text-center">{preset.label}</p>
+                        </div>
+                        {selectedEffect === preset.id && (
+                          <div className="absolute top-1 right-1 w-4 h-4 bg-pink-500 rounded-full flex items-center justify-center">
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -437,7 +554,7 @@ export default function VideoEditor({
                       filePath,
                       fileSize: videoFile.size,
                     });
-                  } catch (error) {
+                  } catch {
                     toast.error("Failed to upload video");
                     setIsUploading(false);
                   }

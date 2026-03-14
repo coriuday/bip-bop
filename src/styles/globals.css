@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* ─── Fonts ──────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
 html {
   scroll-behavior: smooth;
 }
@@ -7,11 +10,26 @@ html {
 body {
   background-color: #0a0a0a;
   color: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ─── Design Tokens ──────────────────────────────────────────── */
+:root {
+  --color-primary: #FF2D55;
+  --color-secondary: #00D4FF;
+  --color-accent: #7B2FFF;
+  --color-surface-1: #0D0D0D;
+  --color-surface-2: #1A1A1A;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #A0A0A0;
+  --gradient-brand: linear-gradient(135deg, #FF2D55 0%, #7B2FFF 50%, #00D4FF 100%);
+  --gradient-brand-short: linear-gradient(135deg, #FF2D55, #00D4FF);
+}
+
+/* ─── Utilities ──────────────────────────────────────────────── */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -22,72 +40,98 @@ body {
 }
 
 .gradient-text {
-  background: linear-gradient(to right, #ec4899, #22d3ee);
+  background: var(--gradient-brand-short);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .glass-effect {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border);
 }
 
 .glow-pink {
-  box-shadow: 0 0 20px rgba(254, 44, 85, 0.3);
+  box-shadow: 0 0 24px rgba(255, 45, 85, 0.35);
 }
 
 .glow-cyan {
-  box-shadow: 0 0 20px rgba(37, 244, 238, 0.3);
+  box-shadow: 0 0 24px rgba(0, 212, 255, 0.35);
 }
 
-/* Animations */
+/* ─── Keyframes ──────────────────────────────────────────────── */
 @keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
 
 @keyframes gradient-shift {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
-.animate-float {
-  animation: float 3s ease-in-out infinite;
+@keyframes shine {
+  0% { background-position: 100%; }
+  100% { background-position: -100%; }
 }
 
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
+@keyframes heartPop {
+  0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+  50% { transform: scale(1.5) rotate(5deg); opacity: 1; }
+  80% { transform: scale(1.0) rotate(-2deg); opacity: 1; }
+  100% { transform: scale(1.2) rotate(0deg); opacity: 0; }
 }
 
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient-shift 3s ease infinite;
+@keyframes orb-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(60px, -40px) scale(1.1); }
+  66% { transform: translate(-30px, 30px) scale(0.95); }
 }
 
-/* Custom scrollbar */
+@keyframes orb-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-50px, 60px) scale(1.05); }
+  66% { transform: translate(40px, -25px) scale(0.9); }
+}
+
+@keyframes orb-drift-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, 50px) scale(1.15); }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ─── Animation Classes ──────────────────────────────────────── */
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+.animate-gradient { background-size: 200% 200%; animation: gradient-shift 3s ease infinite; }
+.animate-shine { animation: shine 3s linear infinite; }
+.animate-heart-pop { animation: heartPop 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.animate-orb-1 { animation: orb-drift-1 12s ease-in-out infinite; }
+.animate-orb-2 { animation: orb-drift-2 15s ease-in-out infinite; }
+.animate-orb-3 { animation: orb-drift-3 10s ease-in-out infinite; }
+.animate-fade-up { animation: fade-up 0.6s ease-out forwards; }
+.animate-slide-in-right { animation: slide-in-right 0.4s ease-out forwards; }
+
+/* ─── Custom Scrollbar ───────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -103,15 +147,42 @@ body {
   background: rgba(255, 255, 255, 0.2);
 }
 
-@keyframes shine {
-  0% {
-    background-position: 100%;
-  }
-  100% {
-    background-position: -100%;
-  }
+/* ─── Accessibility ──────────────────────────────────────────── */
+
+/* Keyboard focus ring */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
-.animate-shine {
-  animation: shine 3s linear infinite;
+/* Skip navigation link for screen readers */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 0 0 8px 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* ─── Reduced Motion ─────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

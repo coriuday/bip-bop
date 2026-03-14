@@ -88,7 +88,6 @@ export async function POST(req: Request) {
       }
 
       // Upload to Vercel Blob Storage
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       const blob = await put(fileName, file, {
         access: "public",
         addRandomSuffix: false,
@@ -102,21 +101,21 @@ export async function POST(req: Request) {
       });
     } else {
       // Local development - save to filesystem
-      const { writeFile, mkdir } = await import("fs/promises");
-      const { join } = await import("path");
-      const { existsSync } = await import("fs");
+      const fsPromises = await import("fs/promises");
+      const path = await import("path");
+      const fs = await import("fs");
       
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
 
       // Ensure uploads directory exists
-      const uploadsDir = join(process.cwd(), "public", "uploads");
-      if (!existsSync(uploadsDir)) {
-        await mkdir(uploadsDir, { recursive: true });
+      const uploadsDir = path.join(process.cwd(), "public", "uploads");
+      if (!fs.existsSync(uploadsDir)) {
+        await fsPromises.mkdir(uploadsDir, { recursive: true });
       }
 
-      const filePath = join(uploadsDir, fileName.replace("videos/", ""));
-      await writeFile(filePath, buffer);
+      const filePath = path.join(uploadsDir, fileName.replace("videos/", ""));
+      await fsPromises.writeFile(filePath, buffer);
 
       return NextResponse.json({
         success: true,

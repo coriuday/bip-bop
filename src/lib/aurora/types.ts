@@ -9,15 +9,15 @@
 // Global string-map for tracking causal event order across nodes
 export type VectorClock = Record<string, number>;
 
-// All allowed event types in the system
 export type EventType =
     | "message:send"
     | "message:read"
     | "message:delete"
-    // Future types (video likes, chat typing, etc)
+    | "message:reaction"
+    | "message:edit"
     | "conversation:typing";
 
-export interface EventEnvelope<T = any> {
+export interface EventEnvelope<T = unknown> {
     id: string;             // ULID — monotonic, sortable, globally unique ID
     type: EventType;        // Discriminant type
     payload: T;             // Event-specific data payload
@@ -41,4 +41,10 @@ export interface MessageReadPayload {
 // Payload for deleting a specific message
 export interface MessageDeletePayload {
     messageId: string;
+}
+
+// Payload for adding or removing an emoji reaction
+export interface MessageReactionPayload {
+    messageId: string;
+    reactions: Record<string, string[]>;
 }

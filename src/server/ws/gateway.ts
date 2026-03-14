@@ -4,8 +4,7 @@ import { type EventEnvelope } from "../../lib/aurora/types";
 // Keep track of which connection is listening to which conversations
 // Map<conversationId, Set<WebSocket>>
 const subscriptions = new Map<string, Set<WebSocket>>();
-
-const port = Number(process.env.WS_PORT || 3001);
+const port = Number(process.env.WS_PORT ?? 3001);
 
 export function createAuroraGateway() {
     const wss = new WebSocketServer({ port });
